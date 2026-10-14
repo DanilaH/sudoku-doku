@@ -59,9 +59,14 @@ jobs:
           script: |
             adb shell svc wifi disable
             adb shell svc data disable
-            gradle -p android :app:connectedDebugAndroidTest -PdisableAds=true -Pandroid.testInstrumentationRunnerArguments.class=ru.danilah.sudokudoku.OfflineGameTest#offlineFirstLaunchAndNativeSaveRestore
+            gradle -p android :app:assembleDebug :app:assembleDebugAndroidTest -PdisableAds=true
+            adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+            adb install -r android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+            adb shell am instrument -w -e class ru.danilah.sudokudoku.OfflineGameTest#offlineFirstLaunchAndNativeSaveRestore ru.danilah.sudokudoku.debug.test/androidx.test.runner.AndroidJUnitRunner | tee artifacts/android-offline-test.log
+            python3 -c 'from pathlib import Path; assert "OK (1 test)" in Path("artifacts/android-offline-test.log").read_text()'
             adb shell am force-stop ru.danilah.sudokudoku.debug
-            gradle -p android :app:connectedDebugAndroidTest -PdisableAds=true -Pandroid.testInstrumentationRunnerArguments.class=ru.danilah.sudokudoku.OfflineGameTest#processDeathRestoresRedoHistory
+            adb shell am instrument -w -e class ru.danilah.sudokudoku.OfflineGameTest#processDeathRestoresRedoHistory ru.danilah.sudokudoku.debug.test/androidx.test.runner.AndroidJUnitRunner | tee artifacts/android-process-death-test.log
+            python3 -c 'from pathlib import Path; assert "OK (1 test)" in Path("artifacts/android-process-death-test.log").read_text()'
             adb pull /sdcard/Android/data/ru.danilah.sudokudoku.debug/files artifacts/android-screenshots
       - run: cp android/app/build/outputs/apk/debug/app-debug.apk artifacts/sudoku-offline.apk
       - uses: actions/upload-artifact@v4
@@ -70,6 +75,7 @@ jobs:
           name: sudoku-android-debug
           path: |
             artifacts/*.apk
+            artifacts/*.log
             artifacts/android-screenshots/
             android/app/build/reports/androidTests/
             android/app/build/reports/lint-results-debug.html

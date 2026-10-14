@@ -5,3 +5,5 @@
 
 @media(max-width:720px){.monetized .top{margin-bottom:12px}.monetized .game-heading{margin-bottom:12px}.monetized .game-heading h1{font-size:20px}.monetized .board-wrap{width:min(100%,max(288px,calc(100dvh - 490px)));align-self:center}.monetized .game-note{display:none}.monetized .ad-slot{height:80px}.monetized .game-layout{gap:12px}}
 @media(max-height:739px){.monetized .ad-slot{display:none}}
+/* Two rows keep digit targets comfortable on narrow phones. Do not shrink the board to make an ad fit. */
+@media(max-width:720px){.numpad{grid-template-columns:repeat(10,minmax(0,1fr));gap:5px}.numpad button{grid-column:span 2;min-height:48px}.numpad button:nth-child(6){grid-column:2/span 2}.monetized .board-wrap{width:100%}.monetized .game-heading h1{display:none}.monetized .game-heading .eyebrow{margin-bottom:0}.monetized .clock>span{font-size:17px}}

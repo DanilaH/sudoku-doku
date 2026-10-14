@@ -14,7 +14,7 @@ jobs:
       - run: npm ci
       - run: npm test && npm run verify:bank && npm run build && npm run build:yandex
       - run: npx playwright install --with-deps chromium
-      - run: npx playwright test --workers=1
+      - run: npx playwright test --workers=1 && npx playwright test -c playwright.yandex.config.ts --workers=1
       - run: cd dist-yandex && zip -r ../sudoku-yandex.zip .
       - uses: actions/upload-artifact@v4
         with:
@@ -65,6 +65,7 @@ jobs:
             adb pull /sdcard/Android/data/ru.danilah.sudokudoku.debug/files artifacts/android-screenshots
       - run: cp android/app/build/outputs/apk/debug/app-debug.apk artifacts/sudoku-offline.apk
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: sudoku-android-debug
           path: |

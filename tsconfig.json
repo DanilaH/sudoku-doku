@@ -23,6 +23,7 @@
     "tools/*.ts",
     "vite.config.ts",
     "capacitor.config.ts",
-    "playwright.config.ts"
+    "playwright.config.ts",
+    "playwright.yandex.config.ts"
   ]
 }

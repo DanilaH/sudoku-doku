@@ -1,0 +1,2 @@
+import {defineConfig} from '@playwright/test';
+export default defineConfig({testDir:'tests/yandex',timeout:30000,use:{baseURL:'http://127.0.0.1:5180',launchOptions:process.env.PLAYWRIGHT_EXECUTABLE?{executablePath:process.env.PLAYWRIGHT_EXECUTABLE}:{},viewport:{width:390,height:844}},webServer:{command:'npx vite --mode yandex --host 127.0.0.1 --port 5180',url:'http://127.0.0.1:5180',reuseExistingServer:false}});

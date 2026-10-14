@@ -1,0 +1,36 @@
+{
+  "validator": "independent Algorithm X exact cover",
+  "validated": 900,
+  "counts": {
+    "MEDIUM": 300,
+    "EASY": 300,
+    "HARD": 300
+  },
+  "zero_or_multiple_solutions": 0,
+  "canonical_duplicates": 0,
+  "seconds": 3.09,
+  "steps": {
+    "MEDIUM": {
+      "min": 55,
+      "max": 67,
+      "mean": 59.47
+    },
+    "EASY": {
+      "min": 53,
+      "max": 59,
+      "mean": 56.69
+    },
+    "HARD": {
+      "min": 55,
+      "max": 72,
+      "mean": 62.2
+    }
+  },
+  "technique_steps": {
+    "NAKED_SINGLE": 38553,
+    "HIDDEN_SINGLE": 12540,
+    "LOCKED_CANDIDATES": 1987,
+    "NAKED_PAIR": 247,
+    "HIDDEN_PAIR": 180
+  }
+}

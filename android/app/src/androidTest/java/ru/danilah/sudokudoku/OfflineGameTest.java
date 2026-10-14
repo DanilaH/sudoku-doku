@@ -25,6 +25,14 @@ public class OfflineGameTest {
   scenario.onActivity(a->a.getBridge().getWebView().evaluateJavascript(js,v->{result.set(v);latch.countDown();}));
   assertTrue("JS callback",latch.await(5,TimeUnit.SECONDS));return result.get();
  }
+ private void tap(ActivityScenario<MainActivity> s,String selector)throws Exception{
+  String encoded=evaluate(s,"(()=>{const r=document.querySelector('"+selector+"').getBoundingClientRect();return JSON.stringify([r.x+r.width/2,r.y+r.height/2,innerWidth])})()");
+  String json=(String)new org.json.JSONTokener(encoded).nextValue();org.json.JSONArray point=new org.json.JSONArray(json);float[] screen=new float[2];
+  s.onActivity(a->{int[] loc=new int[2];a.getBridge().getWebView().getLocationOnScreen(loc);try{float scale=(float)(a.getBridge().getWebView().getWidth()/point.getDouble(2));screen[0]=loc[0]+(float)point.getDouble(0)*scale;screen[1]=loc[1]+(float)point.getDouble(1)*scale;}catch(Exception e){throw new RuntimeException(e);}});
+  long now=android.os.SystemClock.uptimeMillis();android.app.Instrumentation inst=InstrumentationRegistry.getInstrumentation();
+  android.view.MotionEvent down=android.view.MotionEvent.obtain(now,now,android.view.MotionEvent.ACTION_DOWN,screen[0],screen[1],0),up=android.view.MotionEvent.obtain(now,now+50,android.view.MotionEvent.ACTION_UP,screen[0],screen[1],0);
+  inst.sendPointerSync(down);inst.sendPointerSync(up);down.recycle();up.recycle();
+ }
  private void waitFor(ActivityScenario<MainActivity>s,String condition)throws Exception{
   long end=System.nanoTime()+TimeUnit.SECONDS.toNanos(15);
   while(System.nanoTime()<end){if("true".equals(evaluate(s,condition)))return;Thread.sleep(100);}
@@ -40,7 +48,9 @@ public class OfflineGameTest {
    waitFor(s,"!!document.querySelector('.board') && !document.querySelector('.cell').disabled");
    String c=evaluate(s,"Array.from(document.querySelectorAll('.cell')).findIndex(c=>!c.innerText.trim())");cell=Integer.parseInt(c);
    evaluate(s,"document.querySelector('[data-cell=\""+cell+"\"]').click()");
-   evaluate(s,"document.querySelector('[aria-label=\"Ввести 3\"]').click()");
+   waitFor(s,"!!document.querySelector('.cell.selected') && !document.querySelector('[aria-label=\"Ввести 3\"]').disabled");
+   assertEquals("true",evaluate(s,"document.querySelector('.numpad').getBoundingClientRect().bottom <= innerHeight"));
+   tap(s,"[aria-label=\"Ввести 3\"]");
    waitFor(s,"document.querySelector('[data-cell=\""+cell+"\"]').innerText==='3' && document.querySelector('.save-status').innerText==='Сохранено'");
    assertTrue("Native snapshot exists",new File(context.getFilesDir(),"sudoku-v1.json").exists());
    screenshot("android-game-light.png");

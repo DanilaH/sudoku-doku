@@ -1,0 +1,2 @@
+/** performance.now() is monotonic and only meaningful in the current process. */
+export class ActiveClock {private started:number|null=null;private accumulated=0;constructor(ms=0){this.accumulated=ms}setRunning(running:boolean,now:number){if(running&&this.started===null)this.started=now;if(!running&&this.started!==null){this.accumulated+=Math.max(0,now-this.started);this.started=null}}value(now:number){return this.accumulated+(this.started===null?0:Math.max(0,now-this.started))}}

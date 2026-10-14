@@ -1,0 +1,33 @@
+{
+  "name": "sudoku-doku",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc --noEmit && vite build",
+    "build:yandex": "tsc --noEmit && vite build --mode yandex",
+    "test": "vitest run",
+    "verify:bank": "node --import tsx tools/verify-bank.ts && python3 tools/validate-bank.py",
+    "android:sync": "npm run build && cap sync android"
+  },
+  "dependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/android": "8.5.3",
+    "@capacitor/app": "^8.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.3",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/node": "^24.0.0",
+    "@vitejs/plugin-react": "latest",
+    "vite": "8.3.4",
+    "typescript": "^5.9.0",
+    "vitest": "latest",
+    "tsx": "latest",
+    "@playwright/test": "latest"
+  }
+}

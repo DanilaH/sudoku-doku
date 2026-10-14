@@ -4,3 +4,11 @@ local.properties
 *.jar
 
 __pycache__/
+node_modules/
+dist/
+dist-yandex/
+playwright-report/
+test-results/
+artifacts/
+*.jks
+*.keystore

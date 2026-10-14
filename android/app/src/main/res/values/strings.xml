@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Судоку — спокойно</string>
+    <string name="title_activity_main">Судоку — спокойно</string>
+    <string name="package_name">ru.danilah.sudokudoku</string>
+    <string name="custom_url_scheme">ru.danilah.sudokudoku</string>
+</resources>

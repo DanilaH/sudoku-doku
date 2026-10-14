@@ -1,0 +1,17 @@
+{
+  "validated": 900,
+  "kotlin_trace_matches": 900,
+  "deductions": 53507,
+  "counts": {
+    "MEDIUM": 300,
+    "EASY": 300,
+    "HARD": 300
+  },
+  "techniques": [
+    "NAKED_SINGLE",
+    "HIDDEN_SINGLE",
+    "LOCKED_CANDIDATES",
+    "NAKED_PAIR",
+    "HIDDEN_PAIR"
+  ]
+}

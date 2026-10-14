@@ -32,7 +32,7 @@ public class DokuNativePlugin extends Plugin {
   if(!BuildConfig.APPMETRICA_KEY.isEmpty()){
    AppMetrica.activate(getContext(),AppMetricaConfig.newConfigBuilder(BuildConfig.APPMETRICA_KEY).withLocationTracking(false).build());analytics=true;
   }
-  getActivity().runOnUiThread(()->YandexAds.initialize(getContext(),()->{initialized=true;preload();}));
+  if(BuildConfig.ADS_ENABLED) getActivity().runOnUiThread(()->YandexAds.initialize(getContext(),()->{initialized=true;notifyListeners("adsReady",new JSObject(),true);preload();}));
  }
  @PluginMethod public void read(PluginCall call){disk.execute(()->{try{JSObject result=new JSObject();if(!save.getBaseFile().exists()&&!new File(save.getBaseFile()+".bak").exists()){result.put("value",org.json.JSONObject.NULL);}else{result.put("value",new String(save.readFully(),StandardCharsets.UTF_8));}call.resolve(result);}catch(Exception e){call.reject("Не удалось прочитать сохранение",e);}});}
  @PluginMethod public void write(PluginCall call){String value=call.getString("value");if(value==null){call.reject("Missing value");return;}disk.execute(()->{FileOutputStream stream=null;try{stream=save.startWrite();stream.write(value.getBytes(StandardCharsets.UTF_8));save.finishWrite(stream);call.resolve();}catch(Exception e){if(stream!=null)save.failWrite(stream);call.reject("Не удалось записать сохранение",e);}});}
@@ -40,7 +40,7 @@ public class DokuNativePlugin extends Plugin {
  @PluginMethod public void event(PluginCall call){if(analytics){String name=call.getString("name","event"),params=call.getString("params","{}");AppMetrica.reportEvent(name,params);}call.resolve();}
  private void report(String name,String format,String code){if(analytics)AppMetrica.reportEvent(name,new JSObject().put("format",format).put("code",code).toString());}
  @PluginMethod public void prepareAd(PluginCall call){getActivity().runOnUiThread(()->{preload();call.resolve();});}
- private void preload(){if(!initialized||loading||interstitial!=null||getActivity().isDestroyed()||BuildConfig.INTERSTITIAL_ID.isEmpty())return;loading=true;report("ad_request","interstitial","");if(loader==null)loader=new InterstitialAdLoader(getContext());loader.loadAd(new AdRequest.Builder(BuildConfig.INTERSTITIAL_ID).build(),new InterstitialAdLoadListener(){public void onAdLoaded(InterstitialAd ad){loading=false;if(getActivity().isDestroyed()){ad.setAdEventListener(null);return;}interstitial=ad;report("ad_load","interstitial","");}public void onAdFailedToLoad(AdRequestError e){loading=false;report("ad_failure","interstitial",String.valueOf(e.getCode()));}});}
+ private void preload(){if(!BuildConfig.ADS_ENABLED||BuildConfig.FORCE_NO_FILL||!initialized||loading||interstitial!=null||getActivity().isDestroyed()||BuildConfig.INTERSTITIAL_ID.isEmpty())return;loading=true;report("ad_request","interstitial","");if(loader==null)loader=new InterstitialAdLoader(getContext());loader.loadAd(new AdRequest.Builder(BuildConfig.INTERSTITIAL_ID).build(),new InterstitialAdLoadListener(){public void onAdLoaded(InterstitialAd ad){loading=false;if(getActivity().isDestroyed()){ad.setAdEventListener(null);return;}interstitial=ad;report("ad_load","interstitial","");}public void onAdFailedToLoad(AdRequestError e){loading=false;report("ad_failure","interstitial",String.valueOf(e.getCode()));}});}
  @PluginMethod public void showAd(PluginCall call){getActivity().runOnUiThread(()->{
   if(pendingAd!=null||interstitial==null||!active||getActivity().isFinishing()){call.resolve(new JSObject().put("shown",false));return;}
   pendingAd=call;shown=false;InterstitialAd ad=interstitial;interstitial=null;
@@ -50,7 +50,7 @@ public class DokuNativePlugin extends Plugin {
  private void finishAd(boolean didShow){PluginCall c=pendingAd;pendingAd=null;if(c!=null)c.resolve(new JSObject().put("shown",didShow));}
  @PluginMethod public void banner(PluginCall call){getActivity().runOnUiThread(()->{
   boolean visible=Boolean.TRUE.equals(call.getBoolean("visible",false));
-  if(!visible||!active||!initialized||BuildConfig.BANNER_ID.isEmpty()){destroyBanner();call.resolve();return;}
+  if(!BuildConfig.ADS_ENABLED||BuildConfig.FORCE_NO_FILL||!visible||!active||!initialized||BuildConfig.BANNER_ID.isEmpty()){destroyBanner();call.resolve();return;}
   try{
    float density=getContext().getResources().getDisplayMetrics().density;
    float scale=getBridge().getWebView().getWidth()/call.getFloat("viewportWidth",1f);

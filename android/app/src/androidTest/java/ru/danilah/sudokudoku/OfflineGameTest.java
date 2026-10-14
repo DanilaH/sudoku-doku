@@ -1,0 +1,54 @@
+package ru.danilah.sudokudoku;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.core.app.ActivityScenario;
+import androidx.test.platform.app.InstrumentationRegistry;
+import android.content.Context;
+import android.util.AtomicFile;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import java.io.File;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import static org.junit.Assert.*;
+
+@RunWith(AndroidJUnit4.class)
+public class OfflineGameTest {
+ private String evaluate(ActivityScenario<MainActivity> scenario,String js)throws Exception{
+  CountDownLatch latch=new CountDownLatch(1);AtomicReference<String> result=new AtomicReference<>();
+  scenario.onActivity(a->a.getBridge().getWebView().evaluateJavascript(js,v->{result.set(v);latch.countDown();}));
+  assertTrue("JS callback",latch.await(5,TimeUnit.SECONDS));return result.get();
+ }
+ private void waitFor(ActivityScenario<MainActivity>s,String condition)throws Exception{
+  long end=System.nanoTime()+TimeUnit.SECONDS.toNanos(15);
+  while(System.nanoTime()<end){if("true".equals(evaluate(s,condition)))return;Thread.sleep(100);}
+  fail("Condition timed out: "+condition+"; page="+evaluate(s,"document.body.innerText"));
+ }
+ @Test public void offlineFirstLaunchAndNativeSaveRestore()throws Exception{
+  Context context=InstrumentationRegistry.getInstrumentation().getTargetContext();
+  new AtomicFile(new File(context.getFilesDir(),"sudoku-v1.json")).delete();
+  int cell;
+  try(ActivityScenario<MainActivity>s=ActivityScenario.launch(MainActivity.class)){
+   waitFor(s,"!!document.querySelector('.new-game .primary')");
+   evaluate(s,"document.querySelector('.new-game .primary').click()");
+   waitFor(s,"!!document.querySelector('.board') && !document.querySelector('.cell').disabled");
+   String c=evaluate(s,"Array.from(document.querySelectorAll('.cell')).findIndex(c=>!c.innerText.trim())");cell=Integer.parseInt(c);
+   evaluate(s,"document.querySelector('[data-cell=\""+cell+"\"]').click()");
+   evaluate(s,"document.querySelector('[aria-label=\"Ввести 3\"]').click()");
+   waitFor(s,"document.querySelector('[data-cell=\""+cell+"\"]').innerText==='3' && document.querySelector('.save-status').innerText==='Сохранено'");
+   assertTrue("Native snapshot exists",new File(context.getFilesDir(),"sudoku-v1.json").exists());
+   Thread.sleep(1200);
+   evaluate(s,"document.querySelector('[aria-label=\"Пауза\"]').click()");
+   waitFor(s,"!!document.querySelector('.pause-cover')");
+   String paused=evaluate(s,"document.querySelector('.clock>span').innerText");Thread.sleep(1200);
+   assertEquals(paused,evaluate(s,"document.querySelector('.clock>span').innerText"));
+  }
+  try(ActivityScenario<MainActivity>s=ActivityScenario.launch(MainActivity.class)){
+   waitFor(s,"!!document.querySelector('.continue')");evaluate(s,"document.querySelector('.continue').click()");
+   waitFor(s,"!!document.querySelector('.board')");
+   assertEquals("\"3\"",evaluate(s,"document.querySelector('[data-cell=\""+cell+"\"]').innerText"));
+   evaluate(s,"Array.from(document.querySelectorAll('.tools button')).find(b=>b.innerText==='Отмена').click()");
+   waitFor(s,"document.querySelector('[data-cell=\""+cell+"\"]').innerText.trim()===''");
+  }
+ }
+}

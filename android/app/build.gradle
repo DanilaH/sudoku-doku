@@ -9,6 +9,8 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "0.1.0"
+        buildConfigField "boolean", "ADS_ENABLED", "true"
+        buildConfigField "boolean", "FORCE_NO_FILL", "false"
         buildConfigField "String", "BANNER_ID", "\"${project.findProperty('bannerId') ?: ''}\""
         buildConfigField "String", "INTERSTITIAL_ID", "\"${project.findProperty('interstitialId') ?: ''}\""
         buildConfigField "String", "APPMETRICA_KEY", "\"${project.findProperty('appMetricaKey') ?: ''}\""
@@ -23,6 +25,8 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix ".debug"
+            buildConfigField "boolean", "ADS_ENABLED", "${!project.hasProperty('disableAds')}"
+            buildConfigField "boolean", "FORCE_NO_FILL", "${project.hasProperty('forceNoFill')}"
             buildConfigField "String", "BANNER_ID", '"demo-banner-yandex"'
             buildConfigField "String", "INTERSTITIAL_ID", '"demo-interstitial-yandex"'
             buildConfigField "String", "APPMETRICA_KEY", '""'

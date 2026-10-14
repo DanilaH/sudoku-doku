@@ -1,32 +1,60 @@
 # Судоку — спокойно
 
-Native Android product for RuStore. Stage 1: pure Kotlin engine and offline puzzle bank. Android UI and advertising have not been implemented. See HANDOFF.md for scope.
+TypeScript engine, React/DOM interface, Vite builds, Capacitor Android wrapper, separate Yandex Games package. Kotlin remains the offline generator and regression reference. See [docs/ROADMAP.md](docs/ROADMAP.md) for scope and release gates.
 
-## Build and reproduce
+## Web
 
-JDK 17+, Gradle 8.13, Kotlin JVM 2.2.20, Python 3. No runtime dependencies in engine.
+Node 24 / npm. Exact dependencies are in package-lock.json.
 
 ```
-gradle :engine:build
-gradle :engine:run --args="300 ."
-python3 tools/validate-bank.py
-gradle :engine:verifyBank
+npm ci
+npm test
+npm run verify:bank
+npm run build
+npm run dev
 ```
 
-Run Gradle from the repository root; bank generation runs there too. `tools/compile-local.sh` is an optional fallback for environments with the Kotlin 2.2.20 compiler already in Gradle's cache. It is not a Gradle wrapper.
+`dist/` is the generic web build; serve over HTTP(S). A loaded game works offline. Offline browser reload is not implemented; Android includes all assets for offline first launch.
 
-## Engine contract
+## Android
 
-Cells are indexed 0..80 in row order. Boards are immutable lists at API boundaries. Zero means blank. LogicalSession keeps internal candidate eliminations separately from handwritten notes. `next` previews a step; `apply` accepts only the exact current deterministic step, rejecting stale/foreign steps. Source cells, unit index, placements and candidate removals provide data for visual explanations.
+JDK 21, SDK 36 / Build Tools 36.0.0, Gradle 8.14.3.
 
-Hints reject values inconsistent with the verified solution. A logical hint includes prerequisite elimination steps followed by the next placement; the UI must preview and explain those steps before applying, and record the complete applied change in undo history. Never treat handwritten notes as the solver's candidates. The game-state integration is a later stage.
+```
+npm ci
+npm run android:sync
+cd android
+./gradlew :app:assembleDebug :app:lintDebug
+```
 
-Difficulty is the weakest supported technique set that solves the puzzle to completion. Easy: singles; medium adds locked candidates; hard adds naked/hidden pairs. This is a product scale, not a promise of expert-level difficulty. Lower-tier solvers exhaust all available monotonic deductions before escalation.
+APK: `android/app/build/outputs/apk/debug/app-debug.apk`. Debug uses only demo ads and does not activate AppMetrica. A small application-owned Capacitor plugin integrates SDKs and serial AtomicFile persistence. Optional screen wake is limited to active gameplay. Build with `-PdisableAds=true` to disable ad initialization/requests; `-PforceNoFill=true` exercises no-fill. Both are debug-only switches.
 
-Generation uses randomized MRV backtracking and removes clues only when the bounded solver finds exactly one solution. The independent Python validator uses Algorithm X exact cover with separate constraints and does not call the Kotlin solver. Canonical deduplication covers digit relabeling and the eight rotations/reflections, not every possible Sudoku group symmetry (band/stack permutations). Each bank task comes from its own random full-grid generation, not transformed copies.
+Production properties: `bannerId`, `interstitialId`, `appMetricaKey`. Release compilation rejects absent/demo IDs. Sign with the owner's existing keystore; never commit passwords/key material. No invented production signing key is configured. Check a signed update preserves data. Complete and host docs/PRIVACY_DRAFT.md and finish docs/STORE_RUSTORE.md. Debug APKs are for testing, not moderation.
 
-The JSONL bank stores 81-character numeric strings rather than verbose integer arrays; Android loading must parse them using `parse`. Puzzle IDs derive from givens; do not key player progress by array position. Updating a bank must preserve active puzzle data.
+## Yandex Games
 
-## Current limits
+```
+npm run build:yandex
+cd dist-yandex
+zip -r ../sudoku-yandex.zip .
+```
 
-No APK, Android module, persistence, game history, UI, analytics, advertising SDK or production ad identifiers yet. Release gating requires bank validation, device testing and the remaining handoff stages. No external puzzle collections or copied solver implementations were used.
+index.html must be at the archive root. Yandex mode loads `/sdk.js`, sends LoadingAPI.ready and gameplay markup, handles pause/resume, uses fullscreen/sticky banners and platform-backed localStorage after SDK initialization. Failed initialization falls back to browser storage and is not platform readiness. Test the package in a platform draft. No fullscreen ads at launch, on Back or inside a party. Platform provisioning/moderation are external release gates.
+
+## Core
+
+Cells are 0..80. Givens are immutable; handwritten notes are separate from solver candidates. Difficulty is the weakest supported technique set completing a puzzle: singles; plus locked candidates; plus naked/hidden pairs. This is a product scale, not universal human difficulty.
+
+Hints include prerequisite eliminations and the next placement. Every step is previewed with an explanation and diagram; application is one undoable action. Incorrect inputs are detected before hint construction. Hint usage remains counted after undo.
+
+A versioned profile snapshot includes the game, notes, undo/redo, settings, ad caps and solved-game records. Writes are serial and atomic; stale revisions are rejected. Corrupt/unsupported saves are not silently erased. Completed games are locked and recorded once by game ID. Best times distinguish applied hints. Uninstall/browser data removal can remove local progress.
+
+## Checks
+
+- `npm test`: input/history, persistence failure, timer and frequency caps.
+- `npm run verify:bank`: 900 tasks, exact Kotlin trace match, deduction correctness and independent Python uniqueness validation.
+- `npx playwright test`: browser play, restore, hints, pause, completion, statistics, loaded offline gameplay and responsive themes. Screenshots in artifacts/.
+- Project workflow: web/Yandex packages, browser tests, Android build/lint and downloadable artifacts.
+- Engine workflow: independently compiles/tests the Kotlin reference.
+
+Green CI does not prove ad fill, analytics dashboard delivery, human play quality or store acceptance. Device/platform checks remain required.

@@ -26,6 +26,7 @@ public class DokuNativePlugin extends Plugin {
  private int bannerWidth=0;
  private InterstitialAdLoader loader;
  private InterstitialAd interstitial;
+ private InterstitialAd displayed;
  private PluginCall pendingAd;
  @Override public void load(){
   save=new AtomicFile(new File(getContext().getFilesDir(),"sudoku-v1.json"));
@@ -43,11 +44,11 @@ public class DokuNativePlugin extends Plugin {
  private void preload(){if(!BuildConfig.ADS_ENABLED||BuildConfig.FORCE_NO_FILL||!initialized||loading||interstitial!=null||getActivity().isDestroyed()||BuildConfig.INTERSTITIAL_ID.isEmpty())return;loading=true;report("ad_request","interstitial","");if(loader==null)loader=new InterstitialAdLoader(getContext());loader.loadAd(new AdRequest.Builder(BuildConfig.INTERSTITIAL_ID).build(),new InterstitialAdLoadListener(){public void onAdLoaded(InterstitialAd ad){loading=false;if(getActivity().isDestroyed()){ad.setAdEventListener(null);return;}interstitial=ad;report("ad_load","interstitial","");}public void onAdFailedToLoad(AdRequestError e){loading=false;report("ad_failure","interstitial",String.valueOf(e.getCode()));}});}
  @PluginMethod public void showAd(PluginCall call){getActivity().runOnUiThread(()->{
   if(pendingAd!=null||interstitial==null||!active||getActivity().isFinishing()){call.resolve(new JSObject().put("shown",false));return;}
-  pendingAd=call;shown=false;InterstitialAd ad=interstitial;interstitial=null;
+  pendingAd=call;shown=false;InterstitialAd ad=interstitial;interstitial=null;displayed=ad;
   ad.setAdEventListener(new InterstitialAdEventListener(){public void onAdShown(){shown=true;}public void onAdFailedToShow(AdError e){report("ad_failure","interstitial",e.getDescription());ad.setAdEventListener(null);finishAd(false);}public void onAdDismissed(){ad.setAdEventListener(null);finishAd(shown);preload();}public void onAdClicked(){}public void onAdImpression(ImpressionData data){notifyListeners("adImpression",new JSObject());report("ad_impression","interstitial","");}});
   try{ad.show(getActivity());}catch(Exception e){ad.setAdEventListener(null);finishAd(false);}
  });}
- private void finishAd(boolean didShow){PluginCall c=pendingAd;pendingAd=null;if(c!=null)c.resolve(new JSObject().put("shown",didShow));}
+ private void finishAd(boolean didShow){PluginCall c=pendingAd;pendingAd=null;displayed=null;if(c!=null)c.resolve(new JSObject().put("shown",didShow));}
  @PluginMethod public void banner(PluginCall call){getActivity().runOnUiThread(()->{
   boolean visible=Boolean.TRUE.equals(call.getBoolean("visible",false));
   if(!BuildConfig.ADS_ENABLED||BuildConfig.FORCE_NO_FILL||!visible||!active||!initialized||BuildConfig.BANNER_ID.isEmpty()){destroyBanner();call.resolve();return;}
@@ -69,5 +70,5 @@ public class DokuNativePlugin extends Plugin {
  private void destroyBanner(){if(banner!=null){banner.setBannerAdEventListener(null);banner.destroy();if(banner.getParent() instanceof ViewGroup)((ViewGroup)banner.getParent()).removeView(banner);banner=null;bannerWidth=0;}}
  @Override protected void handleOnPause(){active=false;destroyBanner();getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);}
  @Override protected void handleOnResume(){active=true;}
- @Override protected void handleOnDestroy(){destroyBanner();if(interstitial!=null)interstitial.setAdEventListener(null);interstitial=null;loader=null;finishAd(false);disk.shutdown();}
+ @Override protected void handleOnDestroy(){destroyBanner();if(interstitial!=null)interstitial.setAdEventListener(null);interstitial=null;if(displayed!=null)displayed.setAdEventListener(null);loader=null;finishAd(false);disk.shutdown();}
 }

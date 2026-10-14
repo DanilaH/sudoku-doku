@@ -14,6 +14,12 @@ import static org.junit.Assert.*;
 
 @RunWith(AndroidJUnit4.class)
 public class OfflineGameTest {
+ private void screenshot(String name)throws Exception{
+  android.graphics.Bitmap bitmap=InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
+  File path=new File(InstrumentationRegistry.getInstrumentation().getTargetContext().getExternalFilesDir(null),name);
+  try(java.io.FileOutputStream out=new java.io.FileOutputStream(path)){assertTrue(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out));}
+  bitmap.recycle();
+ }
  private String evaluate(ActivityScenario<MainActivity> scenario,String js)throws Exception{
   CountDownLatch latch=new CountDownLatch(1);AtomicReference<String> result=new AtomicReference<>();
   scenario.onActivity(a->a.getBridge().getWebView().evaluateJavascript(js,v->{result.set(v);latch.countDown();}));
@@ -37,18 +43,30 @@ public class OfflineGameTest {
    evaluate(s,"document.querySelector('[aria-label=\"Ввести 3\"]').click()");
    waitFor(s,"document.querySelector('[data-cell=\""+cell+"\"]').innerText==='3' && document.querySelector('.save-status').innerText==='Сохранено'");
    assertTrue("Native snapshot exists",new File(context.getFilesDir(),"sudoku-v1.json").exists());
+   screenshot("android-game-light.png");
    Thread.sleep(1200);
    evaluate(s,"document.querySelector('[aria-label=\"Пауза\"]').click()");
    waitFor(s,"!!document.querySelector('.pause-cover')");
    String paused=evaluate(s,"document.querySelector('.clock>span').innerText");Thread.sleep(1200);
    assertEquals(paused,evaluate(s,"document.querySelector('.clock>span').innerText"));
+   screenshot("android-pause.png");
   }
   try(ActivityScenario<MainActivity>s=ActivityScenario.launch(MainActivity.class)){
    waitFor(s,"!!document.querySelector('.continue')");evaluate(s,"document.querySelector('.continue').click()");
    waitFor(s,"!!document.querySelector('.board')");
    assertEquals("\"3\"",evaluate(s,"document.querySelector('[data-cell=\""+cell+"\"]').innerText"));
    evaluate(s,"Array.from(document.querySelectorAll('.tools button')).find(b=>b.innerText==='Отмена').click()");
-   waitFor(s,"document.querySelector('[data-cell=\""+cell+"\"]').innerText.trim()===''");
+   waitFor(s,"document.querySelector('[data-cell=\""+cell+"\"]').innerText.trim()==='' && document.querySelector('.save-status').innerText==='Сохранено'");
   }
  }
+ @Test public void processDeathRestoresRedoHistory()throws Exception{
+  try(ActivityScenario<MainActivity>s=ActivityScenario.launch(MainActivity.class)){
+   waitFor(s,"!!document.querySelector('.continue')");evaluate(s,"document.querySelector('.continue').click()");
+   waitFor(s,"!!document.querySelector('.board') && !document.querySelector('.cell').disabled");
+   evaluate(s,"Array.from(document.querySelectorAll('.tools button')).find(b=>b.innerText==='Повтор').click()");
+   waitFor(s,"document.querySelector('.cell.selected').innerText==='3' && document.querySelector('.save-status').innerText==='Сохранено'");
+   screenshot("android-restored.png");
+  }
+ }
+
 }

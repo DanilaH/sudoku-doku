@@ -4,7 +4,7 @@ Accepted stack: TypeScript + React + Vite; Capacitor 8 for Android. Core and UI 
 
 1. TypeScript port: DONE. All 900 Kotlin step traces match exactly; independent uniqueness validation retained.
 2. Game state: DONE. Input, notes, erase, undo/redo, previewed logical hint application, immutable givens, no mistake limit.
-3. Persistence and time: IMPLEMENTED. Atomic IndexedDB snapshot in web; serial AtomicFile writes in Android; schema and history checks; monotonic active time; idempotent results in the same snapshot. Android process-death tests are still required.
+3. Persistence and time: IMPLEMENTED. Atomic IndexedDB snapshot in web; serial AtomicFile writes in Android; schema and history checks; monotonic active time; idempotent results in the same snapshot. Android process-death checks are implemented in the emulator pipeline; their CI result must pass.
 4. Interface: IMPLEMENTED. Light/dark/system, responsive grid, keyboard and touch controls, pause cover, new-game confirmation, local statistics and settings. Browser scenarios are automated; visual screenshots are actual UI renders.
 5. Android: IMPLEMENTED, build and native checks in CI. Capacitor lifecycle and Back, safe area layout, optional keep-awake.
 6. Android monetization: IMPLEMENTED with Yandex Ads 8.6.0 and AppMetrica 8.6.0 bridge. Debug uses demo units and no analytics key. Actual fills, callbacks, revenue delivery and real-device UX remain release gates.

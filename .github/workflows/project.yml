@@ -59,12 +59,16 @@ jobs:
           script: |
             adb shell svc wifi disable
             adb shell svc data disable
-            gradle -p android :app:connectedDebugAndroidTest -PdisableAds=true
+            gradle -p android :app:connectedDebugAndroidTest -PdisableAds=true -Pandroid.testInstrumentationRunnerArguments.class=ru.danilah.sudokudoku.OfflineGameTest#offlineFirstLaunchAndNativeSaveRestore
+            adb shell am force-stop ru.danilah.sudokudoku.debug
+            gradle -p android :app:connectedDebugAndroidTest -PdisableAds=true -Pandroid.testInstrumentationRunnerArguments.class=ru.danilah.sudokudoku.OfflineGameTest#processDeathRestoresRedoHistory
+            adb pull /sdcard/Android/data/ru.danilah.sudokudoku.debug/files artifacts/android-screenshots
       - run: cp android/app/build/outputs/apk/debug/app-debug.apk artifacts/sudoku-offline.apk
       - uses: actions/upload-artifact@v4
         with:
           name: sudoku-android-debug
           path: |
             artifacts/*.apk
+            artifacts/android-screenshots/
             android/app/build/reports/androidTests/
             android/app/build/reports/lint-results-debug.html

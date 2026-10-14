@@ -39,7 +39,7 @@ cd dist-yandex
 zip -r ../sudoku-yandex.zip .
 ```
 
-index.html must be at the archive root. Yandex mode loads `/sdk.js`, sends LoadingAPI.ready and gameplay markup, handles pause/resume, uses fullscreen/sticky banners and platform-backed localStorage after SDK initialization. Failed initialization falls back to browser storage and is not platform readiness. Test the package in a platform draft. No fullscreen ads at launch, on Back or inside a party. Platform provisioning/moderation are external release gates.
+index.html must be at the archive root. Yandex mode loads `/sdk.js`, sends LoadingAPI.ready and gameplay markup, handles pause/resume, uses fullscreen/sticky banners and platform-backed localStorage after SDK initialization. Storage remains localStorage when initialization fails; platform services then stay disabled. This is not platform readiness. Test the package in a platform draft. No fullscreen ads at launch, on Back or inside a party. Platform provisioning/moderation are external release gates.
 
 ## Core
 

@@ -6,7 +6,7 @@ const sdk=`window.sdkEvents=[];window.sdkHandlers={};window.YaGames={init:async(
 test('SDK markup, pause events, reliable storage and exactly one result ad',async({page})=>{
  await page.route('**/sdk.js',r=>r.fulfill({contentType:'application/javascript',body:sdk}));
  const g=newGame(puzzle),c=g.givens.indexOf(0);g.entries=g.givens.map((d,i)=>d||i===c?0:g.solution[i]);
- const state=initialState();state.current=g;state.results=[1,2].map(n=>({gameId:`previous-${n}`,puzzleId:`previous-${n}`,difficulty:'EASY',activeMs:100,hints:0,completedAt:100,replay:false}));state.ads.firstCompleted=true;
+ const state=initialState();state.current=g;state.normal=g;state.results=[1,2].map(n=>({gameId:`previous-${n}`,puzzleId:`previous-${n}`,difficulty:'EASY',activeMs:100,hints:0,completedAt:100,replay:false}));state.ads.firstCompleted=true;
  await page.addInitScript(s=>localStorage.setItem('sudoku-doku-v1',JSON.stringify(s)),state);
  await page.goto('/');await page.getByRole('button',{name:'Продолжить партию'}).click();
  await expect.poll(()=>page.evaluate(()=>(window as any).sdkEvents.includes('ready'))).toBe(true);

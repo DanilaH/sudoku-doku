@@ -1239,3 +1239,7 @@ button:not(.cell):active:not(:disabled) {
     animation: none;
   }
 }
+
+/* Keep the theme behind short screens as well as inside the app. */
+html { background: var(--paper); }
+body { min-height: 100dvh; }

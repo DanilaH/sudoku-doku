@@ -41,6 +41,8 @@ import {
 import { Native, isAndroid } from "./platform/native";
 import { DAILY_START, localDate, openDaily } from "./core/daily";
 import { playSound, stopSound } from "./platform/sound";
+import { Trophies } from "./components/Trophies";
+import { monthProgress } from "./core/trophies";
 import { Calendar, Tutorial, ErrorBoard } from "./components/Extras";
 import "./style.css";
 const labels: Record<Difficulty, string> = {
@@ -62,7 +64,14 @@ const time = (ms: number) => {
     .padStart(2, "0")}:${(t % 60).toString().padStart(2, "0")}`;
 };
 type Page =
-  "home" | "play" | "settings" | "stats" | "privacy" | "daily" | "tutorial";
+  | "home"
+  | "play"
+  | "settings"
+  | "stats"
+  | "privacy"
+  | "daily"
+  | "tutorial"
+  | "trophies";
 type Modal =
   | { kind: "new"; level: Difficulty; replay: boolean }
   | { kind: "hint"; value: Hint; index: number }
@@ -135,6 +144,7 @@ export default function Doku() {
     [failure, setFailure] = useState(""),
     [bootFailure, setBootFailure] = useState(false),
     [saving, setSaving] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState<string | undefined>();
   const [page, setPage] = useState<Page>("home"),
     [modal, setModal] = useState<Modal>(null),
     [paused, setPaused] = useState(false),
@@ -219,13 +229,20 @@ export default function Doku() {
     if (state.settings.sound && !external && !platformPause && !adBusy) {
       if (next.completed && !before) playSound("win");
       else if (next.undo !== prev.undo || next.redo !== prev.redo)
-        playSound("input");
+        playSound(
+          next.noteMode
+            ? "note"
+            : next.undo.at(-1)?.kind === "erase"
+              ? "erase"
+              : "input",
+        );
       else if (
         next.noteMode !== prev.noteMode ||
         next.inputMode !== prev.inputMode ||
         next.activeDigit !== prev.activeDigit
       )
         playSound("mode");
+      else if (next.selected !== prev.selected) playSound("select");
     }
     void persist(withGame(sref.current, next))
       .then(() => {
@@ -728,607 +745,686 @@ export default function Doku() {
           </button>
         </aside>
       )}
-      {page === "home" && (
-        <section className="home">
-          <div className="intro">
-            <h1>Судоку</h1>
-          </div>
-          {state.normal && !state.normal.completed && (
-            <div className="resume-card">
-              <div className="resume-meta">
-                <h2>{labels[state.normal.difficulty]} уровень</h2>
-                <span>{time(state.normal.activeMs)}</span>
+      <div className="screen-viewport">
+        <div
+          key={page}
+          className={`screen-content ${page === "home" ? "screen-back" : ""}`}
+        >
+          {page === "home" && (
+            <section className="home">
+              <div className="intro">
+                <h1>Судоку</h1>
               </div>
-              <div className="resume-progress">
-                <span
-                  style={{
-                    width: `${(board(state.normal).filter(Boolean).length / 81) * 100}%`,
-                  }}
-                />
-              </div>
-              <p>
-                {board(state.normal).filter(Boolean).length} из 81 клеток
-                заполнено
-              </p>
-              <button
-                className="primary continue"
-                disabled={Boolean(failure)}
-                onClick={() => resume(state.normal!)}
-              >
-                Продолжить партию <span>→</span>
-              </button>
-            </div>
-          )}
-          <div className="new-game">
-            <h2>Новая игра</h2>
-            <div className="levels" role="group" aria-label="Сложность">
-              {levels.map((l) => (
-                <button
-                  key={l}
-                  aria-pressed={chosen === l}
-                  className={chosen === l ? "active" : ""}
-                  onClick={() => setChosen(l)}
-                >
-                  {labels[l]}
-                </button>
-              ))}
-            </div>
-
-            <button
-              className={`primary ${state.normal && !state.normal.completed ? "secondary" : ""}`}
-              disabled={Boolean(failure)}
-              onClick={() => requestNew(chosen)}
-            >
-              Начать игру <span>→</span>
-            </button>
-          </div>
-          <button className="daily-card" onClick={() => setPage("daily")}>
-            <span className="date-badge" aria-hidden="true">
-              <small>
-                {new Date()
-                  .toLocaleDateString("ru", { month: "short" })
-                  .replace(".", "")}
-              </small>
-              {new Date().getDate()}
-            </span>
-            <span>
-              <strong>Задача дня</strong>
-              <small>
-                {new Date().toLocaleDateString("ru", {
-                  day: "numeric",
-                  month: "long",
-                })}{" "}
-                ·{" "}
-                {state.daily[localDate()]?.completed
-                  ? "Решено ✓"
-                  : state.daily[localDate()]
-                    ? "Продолжить"
-                    : "Новое поле каждый день"}
-              </small>
-            </span>
-            <span>→</span>
-          </button>
-          <nav className="home-links">
-            <button onClick={showTutorial}>Как играть</button>
-            <button onClick={() => setPage("stats")}>Статистика</button>
-            <button onClick={showSettings}>Настройки</button>
-          </nav>
-          <p className="footnote">900 задач · 3 уровня сложности</p>
-        </section>
-      )}
-      {page === "play" && game && (
-        <section className="play">
-          <div className="game-heading">
-            <div>
-              <span className="eyebrow">
-                {game.dailyDate ? `${game.dailyDate} · ` : ""}
-                {labels[game.difficulty]}
-                {game.replay ? " · повтор" : ""}
-              </span>
-            </div>
-            <div className="clock">
-              {state.settings.showTimer && (
-                <span aria-label="Активное время">
-                  {time(completed ? game.activeMs : clockMs)}
-                </span>
-              )}
-            </div>
-          </div>
-          <div className="game-layout">
-            <div className="board-wrap">
-              <div
-                className={`board ${paused || external || platformPause ? "hidden-board" : ""}`}
-                role="group"
-                aria-label="Поле судоку 9 на 9"
-              >
-                {b.map((d, c) => {
-                  const focusDigit =
-                      game.inputMode === "digit"
-                        ? game.activeDigit
-                        : selected === null
-                          ? null
-                          : b[selected],
-                    same =
-                      state.settings.highlightSame &&
-                      Boolean(focusDigit) &&
-                      d === focusDigit,
-                    classes = [
-                      "cell",
-                      celebrated.includes(c) ? "group-complete" : "",
-                      game.givens[c] ? "given" : "entry",
-                      state.settings.highlightAreas && related.includes(c)
-                        ? "related"
-                        : "",
-                      same ? "same" : "",
-                      selected === c ? "selected" : "",
-                      bad.includes(c) ? "bad" : "",
-                      c % 9 === 2 || c % 9 === 5 ? "block-right" : "",
-                      Math.floor(c / 9) === 2 || Math.floor(c / 9) === 5
-                        ? "block-bottom"
-                        : "",
-                    ].join(" ");
-                  return (
-                    <button
-                      key={c}
-                      data-cell={c}
-                      className={classes}
-                      disabled={!running || Boolean(failure)}
-                      tabIndex={
-                        selected === c || (selected === null && c === 0)
-                          ? 0
-                          : -1
-                      }
-                      aria-pressed={selected === c}
-                      aria-label={`Строка ${Math.floor(c / 9) + 1}, столбец ${(c % 9) + 1}, ${d ? `цифра ${d}${game.givens[c] ? ", исходная" : ""}` : `пусто${game.notes[c] ? `, заметки ${digits(game.notes[c]).join(", ")}` : ""}`}${bad.includes(c) ? ", конфликт" : ""}`}
-                      onClick={() =>
-                        gameAction((g) =>
-                          chooseCell(g, c, state.settings.autoNotes),
-                        )
-                      }
-                    >
-                      {d ? (
-                        <span>{d}</span>
-                      ) : (
-                        <span className="notes">
-                          {Array.from({ length: 9 }, (_, i) => (
-                            <i key={i}>
-                              {game.notes[c] & (1 << (i + 1)) ? i + 1 : ""}
-                            </i>
-                          ))}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-              {!completed && (paused || external || platformPause) && (
-                <div className="pause-cover">
-                  <Glyph name="pause" />
-                  <h2>Пауза</h2>
-                  <p>Время остановлено</p>
-                  <button
-                    className="primary"
-                    onClick={() => {
-                      setPaused(false);
-                      setExternal(document.hidden);
-                      setPlatformPause(false);
-                    }}
-                    disabled={platformPause}
-                  >
-                    Продолжить
-                  </button>
-                </div>
-              )}
-            </div>
-            <div className="game-controls">
-              {completed ? (
-                <div className="result">
-                  <div className="win-mark" aria-hidden="true">
-                    <Glyph name="check" />
+              {state.normal && !state.normal.completed && (
+                <div className="resume-card">
+                  <div className="resume-meta">
+                    <h2>{labels[state.normal.difficulty]} уровень</h2>
+                    <span>{time(state.normal.activeMs)}</span>
                   </div>
-                  <h2>Судоку решено</h2>
-                  <p className="result-caption">Все цифры на своих местах.</p>
-                  <dl>
-                    <div>
-                      <dt>Активное время</dt>
-                      <dd>{time(game.activeMs)}</dd>
-                    </div>
-                    <div>
-                      <dt>Подсказки</dt>
-                      <dd>{game.hints}</dd>
-                    </div>
-                    <div>
-                      <dt>Сложность</dt>
-                      <dd>{labels[game.difficulty]}</dd>
-                    </div>
-                  </dl>
-                  <button
-                    className="primary"
-                    disabled={saving || adBusy || Boolean(failure)}
-                    onClick={() =>
-                      game.dailyDate
-                        ? setPage("daily")
-                        : void leaveResult("new")
-                    }
-                  >
-                    {game.dailyDate ? "К календарю →" : "К новой игре →"}
-                  </button>
-                  <button
-                    className="text-button"
-                    disabled={adBusy || Boolean(failure)}
-                    onClick={() => void leaveResult("home")}
-                  >
-                    На главную
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <div className="tools">
-                    <button
-                      onClick={() => gameAction((g) => travel(g))}
-                      disabled={!running || !game.undo.length}
-                    >
-                      <Glyph name="undo" />
-                      <span>Отмена</span>
-                    </button>
-                    <button
-                      onClick={() => gameAction(erase)}
-                      disabled={
-                        !running ||
-                        selected === null ||
-                        Boolean(game.givens[selected])
-                      }
-                    >
-                      <Glyph name="erase" />
-                      <span>Стереть</span>
-                    </button>
-                    <button
-                      aria-label="Заметки"
-                      aria-pressed={game.noteMode}
-                      onClick={() =>
-                        gameAction((g) => ({ ...g, noteMode: !g.noteMode }))
-                      }
-                      disabled={!running}
-                    >
-                      <span className="note-state" aria-hidden="true">
-                        {game.noteMode ? "Вкл" : "Выкл"}
-                      </span>
-                      <Glyph name="note" />
-                      <span>Заметки</span>
-                    </button>
-                    <button
-                      disabled={!running}
-                      onClick={() => {
-                        const h = gameHint(game);
-                        setModal({ kind: "hint", value: h, index: 0 });
-                        void event("hint_used", {
-                          technique:
-                            h.kind === "logical"
-                              ? h.steps.at(-1)!.technique
-                              : "none",
-                          applied: false,
-                        });
+                  <div className="resume-progress">
+                    <span
+                      style={{
+                        width: `${(board(state.normal).filter(Boolean).length / 81) * 100}%`,
                       }}
-                    >
-                      <Glyph name="hint" />
-                      <span>Подсказка</span>
-                    </button>
+                    />
                   </div>
-                  <p className="input-caption">
-                    {game.noteMode
-                      ? "Заметки включены — отмечайте кандидатов"
-                      : game.inputMode === "digit"
-                        ? game.activeDigit
-                          ? `Цифра ${game.activeDigit} выбрана — нажимайте клетки`
-                          : "Выберите цифру, затем клетки"
-                        : selected === null
-                          ? "Выберите клетку, затем цифру"
-                          : game.givens[selected]
-                            ? "Исходная цифра — менять нельзя"
-                            : `Строка ${Math.floor(selected / 9) + 1}, столбец ${(selected % 9) + 1}`}
+                  <p>
+                    {board(state.normal).filter(Boolean).length} из 81 клеток
+                    заполнено
                   </p>
-                  <div className="numpad" aria-label="Ввод цифр">
-                    {digits(0x3fe).map((d) => (
-                      <button
-                        key={d}
-                        disabled={
-                          !running ||
-                          (game.inputMode !== "digit" &&
-                            (selected === null ||
-                              Boolean(game.givens[selected])))
-                        }
-                        onClick={() =>
-                          gameAction((g) =>
-                            chooseDigit(g, d, state.settings.autoNotes),
-                          )
-                        }
-                        aria-label={`Ввести ${d}`}
-                        aria-pressed={
-                          game.inputMode === "digit" && game.activeDigit === d
-                        }
-                        className={`${game.noteMode ? "pencil" : ""} ${digitComplete(game, d) ? "digit-complete" : ""}`}
-                      >
-                        {d}
-                        <small>
-                          {digitComplete(game, d)
-                            ? "✓"
-                            : Math.max(0, 9 - b.filter((n) => n === d).length)}
-                        </small>
-                      </button>
-                    ))}
+                  <button
+                    className="primary continue"
+                    disabled={Boolean(failure)}
+                    onClick={() => resume(state.normal!)}
+                  >
+                    Продолжить партию <span>→</span>
+                  </button>
+                </div>
+              )}
+              <div className="new-game">
+                <h2>Новая игра</h2>
+                <div className="levels" role="group" aria-label="Сложность">
+                  {levels.map((l) => (
+                    <button
+                      key={l}
+                      aria-pressed={chosen === l}
+                      className={chosen === l ? "active" : ""}
+                      onClick={() => setChosen(l)}
+                    >
+                      {labels[l]}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  className={`primary ${state.normal && !state.normal.completed ? "secondary" : ""}`}
+                  disabled={Boolean(failure)}
+                  onClick={() => requestNew(chosen)}
+                >
+                  Начать игру <span>→</span>
+                </button>
+              </div>
+              <button
+                className="daily-card"
+                onClick={() => {
+                  setCalendarMonth(undefined);
+                  setPage("daily");
+                }}
+              >
+                <span className="date-badge" aria-hidden="true">
+                  <small>
+                    {new Date()
+                      .toLocaleDateString("ru", { month: "short" })
+                      .replace(".", "")}
+                  </small>
+                  {new Date().getDate()}
+                </span>
+                <span>
+                  <strong>Задача дня</strong>
+                  <small>
+                    {new Date().toLocaleDateString("ru", {
+                      day: "numeric",
+                      month: "long",
+                    })}{" "}
+                    ·{" "}
+                    {state.daily[localDate()]?.completed
+                      ? "Решено ✓"
+                      : state.daily[localDate()]
+                        ? "Продолжить"
+                        : "Новое поле каждый день"}
+                  </small>
+                </span>
+                <span>→</span>
+              </button>
+              <nav className="home-links">
+                <button onClick={showTutorial}>Как играть</button>
+                <button onClick={() => setPage("stats")}>Статистика</button>
+                <button onClick={() => setPage("trophies")}>Трофеи</button>
+                <button onClick={showSettings}>Настройки</button>
+              </nav>
+              <p className="footnote">900 задач · 3 уровня сложности</p>
+            </section>
+          )}
+          {page === "play" && game && (
+            <section className="play">
+              <div className="game-heading">
+                <div>
+                  <span className="eyebrow">
+                    {game.dailyDate ? `${game.dailyDate} · ` : ""}
+                    {labels[game.difficulty]}
+                    {game.replay ? " · повтор" : ""}
+                  </span>
+                </div>
+                <div className="clock">
+                  {state.settings.showTimer && (
+                    <span aria-label="Активное время">
+                      {time(completed ? game.activeMs : clockMs)}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="game-layout">
+                <div className="board-wrap">
+                  <div
+                    className={`board ${paused || external || platformPause ? "hidden-board" : ""}`}
+                    role="group"
+                    aria-label="Поле судоку 9 на 9"
+                  >
+                    {b.map((d, c) => {
+                      const focusDigit =
+                          game.inputMode === "digit"
+                            ? game.activeDigit
+                            : selected === null
+                              ? null
+                              : b[selected],
+                        same =
+                          state.settings.highlightSame &&
+                          Boolean(focusDigit) &&
+                          d === focusDigit,
+                        classes = [
+                          "cell",
+                          celebrated.includes(c) ? "group-complete" : "",
+                          game.givens[c] ? "given" : "entry",
+                          state.settings.highlightAreas && related.includes(c)
+                            ? "related"
+                            : "",
+                          same ? "same" : "",
+                          selected === c ? "selected" : "",
+                          bad.includes(c) ? "bad" : "",
+                          c % 9 === 2 || c % 9 === 5 ? "block-right" : "",
+                          Math.floor(c / 9) === 2 || Math.floor(c / 9) === 5
+                            ? "block-bottom"
+                            : "",
+                        ].join(" ");
+                      return (
+                        <button
+                          key={c}
+                          data-cell={c}
+                          className={classes}
+                          disabled={!running || Boolean(failure)}
+                          tabIndex={
+                            selected === c || (selected === null && c === 0)
+                              ? 0
+                              : -1
+                          }
+                          aria-pressed={selected === c}
+                          aria-label={`Строка ${Math.floor(c / 9) + 1}, столбец ${(c % 9) + 1}, ${d ? `цифра ${d}${game.givens[c] ? ", исходная" : ""}` : `пусто${game.notes[c] ? `, заметки ${digits(game.notes[c]).join(", ")}` : ""}`}${bad.includes(c) ? ", конфликт" : ""}`}
+                          onClick={() =>
+                            gameAction((g) =>
+                              chooseCell(g, c, state.settings.autoNotes),
+                            )
+                          }
+                        >
+                          {d ? (
+                            <span key={d}>{d}</span>
+                          ) : (
+                            <span className="notes">
+                              {Array.from({ length: 9 }, (_, i) => (
+                                <i key={i}>
+                                  {game.notes[c] & (1 << (i + 1)) ? i + 1 : ""}
+                                </i>
+                              ))}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
-                  <div className="secondary-tools">
-                    <details className="mode-picker">
-                      <summary aria-label="Режим ввода">
-                        {game.inputMode === "digit"
-                          ? "Цифра → клетки"
-                          : "Клетка → цифра"}{" "}
-                        <span>⌄</span>
-                      </summary>
-                      <div
-                        className="input-modes"
-                        role="group"
-                        aria-label="Способ ввода"
+                  {!completed && (paused || external || platformPause) && (
+                    <div className="pause-cover">
+                      <Glyph name="pause" />
+                      <h2>Пауза</h2>
+                      <p>Время остановлено</p>
+                      <button
+                        className="primary"
+                        onClick={() => {
+                          setPaused(false);
+                          setExternal(document.hidden);
+                          setPlatformPause(false);
+                        }}
+                        disabled={platformPause}
                       >
-                        {(["cell", "digit"] as const).map((mode) => (
+                        Продолжить
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div className="game-controls">
+                  {completed ? (
+                    <div className="result">
+                      <div className="win-mark" aria-hidden="true">
+                        <Glyph name="check" />
+                      </div>
+                      <h2>Судоку решено</h2>
+                      <p className="result-caption">
+                        Все цифры на своих местах.
+                      </p>
+                      {game.dailyDate &&
+                        (() => {
+                          const p = monthProgress(
+                            state.daily,
+                            game.dailyDate.slice(0, 7),
+                          );
+                          return (
+                            <button
+                              className="month-reward"
+                              onClick={() => setPage("trophies")}
+                            >
+                              <span>
+                                Месяц: {p.solved}/{p.total}
+                              </span>
+                              <strong>
+                                {p.solved === 7
+                                  ? "Бронзовая медаль получена"
+                                  : p.solved === 15
+                                    ? "Серебряная медаль получена"
+                                    : p.tier === 3
+                                      ? "Золотая медаль получена"
+                                      : `До следующей медали: ${p.target - p.solved}`}
+                              </strong>
+                              <progress value={p.solved} max={p.total} />
+                            </button>
+                          );
+                        })()}
+                      <dl>
+                        <div>
+                          <dt>Активное время</dt>
+                          <dd>{time(game.activeMs)}</dd>
+                        </div>
+                        <div>
+                          <dt>Подсказки</dt>
+                          <dd>{game.hints}</dd>
+                        </div>
+                        <div>
+                          <dt>Сложность</dt>
+                          <dd>{labels[game.difficulty]}</dd>
+                        </div>
+                      </dl>
+                      <button
+                        className="primary"
+                        disabled={saving || adBusy || Boolean(failure)}
+                        onClick={() =>
+                          game.dailyDate
+                            ? setPage("daily")
+                            : void leaveResult("new")
+                        }
+                      >
+                        {game.dailyDate ? "К календарю →" : "К новой игре →"}
+                      </button>
+                      <button
+                        className="text-button"
+                        disabled={adBusy || Boolean(failure)}
+                        onClick={() => void leaveResult("home")}
+                      >
+                        На главную
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="tools">
+                        <button
+                          onClick={() => gameAction((g) => travel(g))}
+                          disabled={!running || !game.undo.length}
+                        >
+                          <Glyph name="undo" />
+                          <span>Отмена</span>
+                        </button>
+                        <button
+                          onClick={() => gameAction(erase)}
+                          disabled={
+                            !running ||
+                            selected === null ||
+                            Boolean(game.givens[selected])
+                          }
+                        >
+                          <Glyph name="erase" />
+                          <span>Стереть</span>
+                        </button>
+                        <button
+                          aria-label="Заметки"
+                          aria-pressed={game.noteMode}
+                          onClick={() =>
+                            gameAction((g) => ({ ...g, noteMode: !g.noteMode }))
+                          }
+                          disabled={!running}
+                        >
+                          <span className="note-state" aria-hidden="true">
+                            {game.noteMode ? "Вкл" : "Выкл"}
+                          </span>
+                          <Glyph name="note" />
+                          <span>Заметки</span>
+                        </button>
+                        <button
+                          disabled={!running}
+                          onClick={() => {
+                            const h = gameHint(game);
+                            setModal({ kind: "hint", value: h, index: 0 });
+                            void event("hint_used", {
+                              technique:
+                                h.kind === "logical"
+                                  ? h.steps.at(-1)!.technique
+                                  : "none",
+                              applied: false,
+                            });
+                          }}
+                        >
+                          <Glyph name="hint" />
+                          <span>Подсказка</span>
+                        </button>
+                      </div>
+                      <p className="input-caption">
+                        {game.noteMode
+                          ? "Заметки включены — отмечайте кандидатов"
+                          : game.inputMode === "digit"
+                            ? game.activeDigit
+                              ? `Цифра ${game.activeDigit} выбрана — нажимайте клетки`
+                              : "Выберите цифру, затем клетки"
+                            : selected === null
+                              ? "Выберите клетку, затем цифру"
+                              : game.givens[selected]
+                                ? "Исходная цифра — менять нельзя"
+                                : `Строка ${Math.floor(selected / 9) + 1}, столбец ${(selected % 9) + 1}`}
+                      </p>
+                      <div className="numpad" aria-label="Ввод цифр">
+                        {digits(0x3fe).map((d) => (
                           <button
-                            key={mode}
-                            disabled={!running}
-                            aria-pressed={(game.inputMode ?? "cell") === mode}
-                            onClick={(e) => {
-                              gameAction((g) => ({ ...g, inputMode: mode }));
-                              e.currentTarget
-                                .closest("details")
-                                ?.removeAttribute("open");
-                            }}
+                            key={d}
+                            disabled={
+                              !running ||
+                              (game.inputMode !== "digit" &&
+                                (selected === null ||
+                                  Boolean(game.givens[selected])))
+                            }
+                            onClick={() =>
+                              gameAction((g) =>
+                                chooseDigit(g, d, state.settings.autoNotes),
+                              )
+                            }
+                            aria-label={`Ввести ${d}`}
+                            aria-pressed={
+                              game.inputMode === "digit" &&
+                              game.activeDigit === d
+                            }
+                            className={`${game.noteMode ? "pencil" : ""} ${digitComplete(game, d) ? "digit-complete" : ""}`}
                           >
-                            {mode === "cell"
-                              ? "Клетка → цифра"
-                              : "Цифра → клетки"}
+                            {d}
+                            <small>
+                              {digitComplete(game, d)
+                                ? "✓"
+                                : Math.max(
+                                    0,
+                                    9 - b.filter((n) => n === d).length,
+                                  )}
+                            </small>
                           </button>
                         ))}
                       </div>
-                    </details>
-                    <button
-                      disabled={!running || !game.redo.length}
-                      onClick={() => gameAction((g) => travel(g, true))}
-                    >
-                      <Glyph name="redo" />
-                      <span>Повтор</span>
-                    </button>
-                    <button
-                      disabled={!running}
-                      onClick={() =>
-                        setModal({ kind: "check", cells: errors(game) })
-                      }
-                    >
-                      <Glyph name="check" />
-                      <span>Проверить</span>
-                    </button>
-                  </div>
-                  {b.every(Boolean) && !completed && (
-                    <p className="full-warning" role="status">
-                      Поле заполнено, но есть ошибки.{" "}
-                      <button
-                        onClick={() =>
-                          setModal({ kind: "check", cells: errors(game) })
-                        }
-                      >
-                        Показать
-                      </button>
-                    </p>
+                      <div className="secondary-tools">
+                        <details className="mode-picker">
+                          <summary aria-label="Режим ввода">
+                            {game.inputMode === "digit"
+                              ? "Цифра → клетки"
+                              : "Клетка → цифра"}{" "}
+                            <span>⌄</span>
+                          </summary>
+                          <div
+                            className="input-modes"
+                            role="group"
+                            aria-label="Способ ввода"
+                          >
+                            {(["cell", "digit"] as const).map((mode) => (
+                              <button
+                                key={mode}
+                                disabled={!running}
+                                aria-pressed={
+                                  (game.inputMode ?? "cell") === mode
+                                }
+                                onClick={(e) => {
+                                  gameAction((g) => ({
+                                    ...g,
+                                    inputMode: mode,
+                                  }));
+                                  e.currentTarget
+                                    .closest("details")
+                                    ?.removeAttribute("open");
+                                }}
+                              >
+                                {mode === "cell"
+                                  ? "Клетка → цифра"
+                                  : "Цифра → клетки"}
+                              </button>
+                            ))}
+                          </div>
+                        </details>
+                        <button
+                          disabled={!running || !game.redo.length}
+                          onClick={() => gameAction((g) => travel(g, true))}
+                        >
+                          <Glyph name="redo" />
+                          <span>Повтор</span>
+                        </button>
+                        <button
+                          disabled={!running}
+                          onClick={() =>
+                            setModal({ kind: "check", cells: errors(game) })
+                          }
+                        >
+                          <Glyph name="check" />
+                          <span>Проверить</span>
+                        </button>
+                      </div>
+                      {b.every(Boolean) && !completed && (
+                        <p className="full-warning" role="status">
+                          Поле заполнено, но есть ошибки.{" "}
+                          <button
+                            onClick={() =>
+                              setModal({ kind: "check", cells: errors(game) })
+                            }
+                          >
+                            Показать
+                          </button>
+                        </p>
+                      )}
+                    </>
                   )}
-                </>
-              )}
-            </div>
-          </div>
-          {(isAndroid() || import.meta.env.MODE === "yandex") && !completed && (
-            <div
-              ref={banner}
-              className="ad-slot"
-              aria-label="Место для рекламы"
-            >
-              <span>Реклама</span>
-            </div>
-          )}
-        </section>
-      )}
-      {page === "settings" && (
-        <section className="simple">
-          <h1>Настройки</h1>
-          <h2>Оформление</h2>
-          <div className="levels" aria-label="Цветовая тема">
-            {(["system", "light", "dark"] as const).map((t, i) => (
-              <button
-                key={t}
-                aria-pressed={state.settings.theme === t}
-                className={state.settings.theme === t ? "active" : ""}
-                onClick={() => settings({ theme: t })}
-              >
-                {["Как в системе", "Светлое", "Тёмное"][i]}
-              </button>
-            ))}
-          </div>
-          {(
-            [
-              [
-                "Экран",
-                [
-                  ["largeDigits", "Крупные цифры", "Увеличить цифры на поле"],
-                  [
-                    "showTimer",
-                    "Показывать таймер",
-                    "При скрытом таймере время тоже учитывается",
-                  ],
-                  [
-                    "keepAwake",
-                    "Не выключать экран",
-                    "Только во время активной игры",
-                  ],
-                ],
-              ],
-              [
-                "Подсветка",
-                [
-                  [
-                    "highlightAreas",
-                    "Строка, столбец и блок",
-                    "Области выбранной клетки",
-                  ],
-                  [
-                    "highlightSame",
-                    "Одинаковые цифры",
-                    "Все вхождения выбранной цифры",
-                  ],
-                  [
-                    "conflicts",
-                    "Подсвечивать конфликты",
-                    "Повторы в строке, столбце или блоке",
-                  ],
-                  [
-                    "autoCheck",
-                    "Проверять ввод по решению",
-                    "Неверные цифры подчёркиваются сразу",
-                  ],
-                ],
-              ],
-              [
-                "Управление",
-                [
-                  [
-                    "autoNotes",
-                    "Убирать связанные заметки",
-                    "Ввод убирает эту цифру из заметок соседних клеток. Отмена возвращает их.",
-                  ],
-                  ["sound", "Звуки", "Отклик на ввод и действия"],
-                ],
-              ],
-            ] as const
-          ).map(([title, items]) => (
-            <section className="settings-group" key={title}>
-              <h2>{title}</h2>
-              {items.map(([key, label, description]) => (
-                <label className="setting" key={key}>
-                  <span>
-                    <strong>{label}</strong>
-                    <small>{description}</small>
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={state.settings[key]}
-                    onChange={(e) => settings({ [key]: e.target.checked })}
-                  />
-                </label>
-              ))}
-            </section>
-          ))}
-          <button className="text-button" onClick={showTutorial}>
-            Как играть →
-          </button>
-          <h2>Управление с клавиатуры</h2>
-          <p className="help">
-            Стрелки — выбор клетки. 1–9 — ввод.
-            <br />N — заметки. Delete — стереть.
-            <br />Z — отменить. Y — повторить. Esc — назад.
-          </p>
-          <button className="text-button" onClick={() => setPage("privacy")}>
-            Конфиденциальность и данные →
-          </button>
-          <p className="footnote">Версия 0.3 · Банк 1</p>
-        </section>
-      )}
-      {page === "stats" && (
-        <section className="simple">
-          <h1>Статистика</h1>
-          <div className="total">
-            <strong>{state.results.filter((r) => !r.dailyDate).length}</strong>
-            <span>решённых партий</span>
-          </div>
-          {levels.map((l) => {
-            const rs = state.results.filter(
-              (r) => !r.dailyDate && r.difficulty === l,
-            );
-            const best = (hints: boolean) => {
-              const filtered = rs.filter((r) => r.hints > 0 === hints);
-              return filtered.length
-                ? time(Math.min(...filtered.map((r) => r.activeMs)))
-                : "—";
-            };
-            return (
-              <div className="stats-row" key={l}>
-                <h2>
-                  {labels[l]} <small>{rs.length} решено</small>
-                </h2>
-                <dl>
-                  <div>
-                    <dt>Лучшее без подсказок</dt>
-                    <dd>{best(false)}</dd>
-                  </div>
-                  <div>
-                    <dt>С подсказками</dt>
-                    <dd>{best(true)}</dd>
-                  </div>
-                </dl>
+                </div>
               </div>
-            );
-          })}
-          <div className="total daily-total">
-            <strong>{state.results.filter((r) => r.dailyDate).length}</strong>
-            <span>ежедневных задач решено</span>
-          </div>
-          <p className="footnote">
-            Результаты хранятся на этом устройстве.
-            <br />
-            Время рекламы и пауз не учитывается.
-          </p>
-        </section>
-      )}
-      {page === "daily" && (
-        <Calendar
-          daily={state.daily}
-          today={localDate()}
-          start={DAILY_START}
-          open={daily}
-        />
-      )}
-      {page === "tutorial" && <Tutorial done={back} />}
-      {page === "privacy" && (
-        <section className="simple">
-          <h1>Конфиденциальность</h1>
-          <p>
-            Партия, заметки, настройки и статистика сохраняются на устройстве.
-            Удаление приложения или данных браузера может удалить прогресс.
-          </p>
-          <p>
-            Обычная веб-версия не отправляет игровую аналитику и не подключает
-            рекламные сети.
-          </p>
-          <p>
-            Android-версия использует Yandex Mobile Ads для рекламы. AppMetrica
-            включается только при настроенном ключе приложения и собирает
-            технические сведения, события игры и ошибки. Геолокация и контакты
-            не запрашиваются. Рекламный SDK может обрабатывать рекламный
-            идентификатор, сведения об устройстве и сетевом подключении.
-          </p>
-          <p>
-            В Яндекс Играх применяются SDK платформы, её реклама и правила
-            обработки данных.
-          </p>
-          <p>
-            <a
-              href="https://yandex.ru/legal/confidential/"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Политика конфиденциальности Яндекса
-            </a>
-          </p>
-          <p className="footnote">
-            Политика владельца и контакт для обращений должны быть указаны перед
-            публикацией приложения.
-          </p>
-        </section>
-      )}
+              {(isAndroid() || import.meta.env.MODE === "yandex") &&
+                !completed && (
+                  <div
+                    ref={banner}
+                    className="ad-slot"
+                    aria-label="Место для рекламы"
+                  >
+                    <span>Реклама</span>
+                  </div>
+                )}
+            </section>
+          )}
+          {page === "settings" && (
+            <section className="simple">
+              <h1>Настройки</h1>
+              <h2>Оформление</h2>
+              <div className="levels" aria-label="Цветовая тема">
+                {(["system", "light", "dark"] as const).map((t, i) => (
+                  <button
+                    key={t}
+                    aria-pressed={state.settings.theme === t}
+                    className={state.settings.theme === t ? "active" : ""}
+                    onClick={() => settings({ theme: t })}
+                  >
+                    {["Как в системе", "Светлое", "Тёмное"][i]}
+                  </button>
+                ))}
+              </div>
+              {(
+                [
+                  [
+                    "Экран",
+                    [
+                      [
+                        "largeDigits",
+                        "Крупные цифры",
+                        "Увеличить цифры на поле",
+                      ],
+                      [
+                        "showTimer",
+                        "Показывать таймер",
+                        "При скрытом таймере время тоже учитывается",
+                      ],
+                      [
+                        "keepAwake",
+                        "Не выключать экран",
+                        "Только во время активной игры",
+                      ],
+                    ],
+                  ],
+                  [
+                    "Подсветка",
+                    [
+                      [
+                        "highlightAreas",
+                        "Строка, столбец и блок",
+                        "Области выбранной клетки",
+                      ],
+                      [
+                        "highlightSame",
+                        "Одинаковые цифры",
+                        "Все вхождения выбранной цифры",
+                      ],
+                      [
+                        "conflicts",
+                        "Подсвечивать конфликты",
+                        "Повторы в строке, столбце или блоке",
+                      ],
+                      [
+                        "autoCheck",
+                        "Проверять ввод по решению",
+                        "Неверные цифры подчёркиваются сразу",
+                      ],
+                    ],
+                  ],
+                  [
+                    "Управление",
+                    [
+                      [
+                        "autoNotes",
+                        "Убирать связанные заметки",
+                        "Ввод убирает эту цифру из заметок соседних клеток. Отмена возвращает их.",
+                      ],
+                      ["sound", "Звуки", "Отклик на ввод и действия"],
+                    ],
+                  ],
+                ] as const
+              ).map(([title, items]) => (
+                <section className="settings-group" key={title}>
+                  <h2>{title}</h2>
+                  {items.map(([key, label, description]) => (
+                    <label className="setting" key={key}>
+                      <span>
+                        <strong>{label}</strong>
+                        <small>{description}</small>
+                      </span>
+                      <input
+                        type="checkbox"
+                        checked={state.settings[key]}
+                        onChange={(e) => settings({ [key]: e.target.checked })}
+                      />
+                    </label>
+                  ))}
+                </section>
+              ))}
+              <button className="text-button" onClick={showTutorial}>
+                Как играть →
+              </button>
+              <h2>Управление с клавиатуры</h2>
+              <p className="help">
+                Стрелки — выбор клетки. 1–9 — ввод.
+                <br />N — заметки. Delete — стереть.
+                <br />Z — отменить. Y — повторить. Esc — назад.
+              </p>
+              <button
+                className="text-button"
+                onClick={() => setPage("privacy")}
+              >
+                Конфиденциальность и данные →
+              </button>
+              <p className="footnote">Версия 0.4 · Банк 1</p>
+            </section>
+          )}
+          {page === "stats" && (
+            <section className="simple">
+              <h1>Статистика</h1>
+              <div className="total">
+                <strong>
+                  {state.results.filter((r) => !r.dailyDate).length}
+                </strong>
+                <span>решённых партий</span>
+              </div>
+              {levels.map((l) => {
+                const rs = state.results.filter(
+                  (r) => !r.dailyDate && r.difficulty === l,
+                );
+                const best = (hints: boolean) => {
+                  const filtered = rs.filter((r) => r.hints > 0 === hints);
+                  return filtered.length
+                    ? time(Math.min(...filtered.map((r) => r.activeMs)))
+                    : "—";
+                };
+                return (
+                  <div className="stats-row" key={l}>
+                    <h2>
+                      {labels[l]} <small>{rs.length} решено</small>
+                    </h2>
+                    <dl>
+                      <div>
+                        <dt>Лучшее без подсказок</dt>
+                        <dd>{best(false)}</dd>
+                      </div>
+                      <div>
+                        <dt>С подсказками</dt>
+                        <dd>{best(true)}</dd>
+                      </div>
+                    </dl>
+                  </div>
+                );
+              })}
+              <div className="total daily-total">
+                <strong>
+                  {state.results.filter((r) => r.dailyDate).length}
+                </strong>
+                <span>ежедневных задач решено</span>
+              </div>
+              <p className="footnote">
+                Результаты хранятся на этом устройстве.
+                <br />
+                Время рекламы и пауз не учитывается.
+              </p>
+            </section>
+          )}
+          {page === "daily" && (
+            <Calendar
+              daily={state.daily}
+              today={localDate()}
+              start={DAILY_START}
+              open={daily}
+              initialMonth={calendarMonth}
+              trophies={() => setPage("trophies")}
+            />
+          )}
+          {page === "trophies" && (
+            <Trophies
+              daily={state.daily}
+              today={localDate()}
+              start={DAILY_START}
+              open={(month) => {
+                setCalendarMonth(month);
+                setPage("daily");
+              }}
+            />
+          )}
+          {page === "tutorial" && <Tutorial done={back} />}
+          {page === "privacy" && (
+            <section className="simple">
+              <h1>Конфиденциальность</h1>
+              <p>
+                Партия, заметки, настройки и статистика сохраняются на
+                устройстве. Удаление приложения или данных браузера может
+                удалить прогресс.
+              </p>
+              <p>
+                Обычная веб-версия не отправляет игровую аналитику и не
+                подключает рекламные сети.
+              </p>
+              <p>
+                Android-версия использует Yandex Mobile Ads для рекламы.
+                AppMetrica включается только при настроенном ключе приложения и
+                собирает технические сведения, события игры и ошибки. Геолокация
+                и контакты не запрашиваются. Рекламный SDK может обрабатывать
+                рекламный идентификатор, сведения об устройстве и сетевом
+                подключении.
+              </p>
+              <p>
+                В Яндекс Играх применяются SDK платформы, её реклама и правила
+                обработки данных.
+              </p>
+              <p>
+                <a
+                  href="https://yandex.ru/legal/confidential/"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Политика конфиденциальности Яндекса
+                </a>
+              </p>
+              <p className="footnote">
+                Политика владельца и контакт для обращений должны быть указаны
+                перед публикацией приложения.
+              </p>
+            </section>
+          )}
+        </div>
+      </div>
       {modal && (
         <ModalView close={() => setModal(null)}>
           <>

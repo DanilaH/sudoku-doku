@@ -20,8 +20,7 @@ export function Calendar({
     setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
   };
   return (
-    <section className="simple">
-      <span className="eyebrow">В СВОЁМ ТЕМПЕ</span>
+    <section className="simple calendar-page">
       <h1>Задача дня</h1>
       <p>
         Одно поле на дату. Обычная партия сохранится. Пропущенные дни можно

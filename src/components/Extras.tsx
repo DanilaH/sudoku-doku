@@ -1,17 +1,23 @@
 import { useState } from "react";
+import { monthProgress } from "../core/trophies";
 import { board, type Game } from "../core/game";
 export function Calendar({
   daily,
   today,
   start,
   open,
+  initialMonth,
+  trophies,
 }: {
   daily: Record<string, Game>;
   today: string;
   start: string;
   open: (date: string) => void;
+  initialMonth?: string;
+  trophies: () => void;
 }) {
-  const [month, setMonth] = useState(today.slice(0, 7));
+  const [month, setMonth] = useState(initialMonth ?? today.slice(0, 7));
+  const progress = monthProgress(daily, month);
   const [year, m] = month.split("-").map(Number),
     days = new Date(year, m, 0).getDate(),
     offset = (new Date(year, m - 1, 1).getDay() + 6) % 7;
@@ -56,7 +62,18 @@ export function Calendar({
           →
         </button>
       </div>
-      <div className="calendar" aria-label="Календарь задач">
+      <button className="month-reward" onClick={trophies}>
+        <span>
+          Трофей месяца · {progress.solved}/{progress.total}
+        </span>
+        <strong>
+          {progress.tier === 3
+            ? "Золото ✓"
+            : `До ${progress.tier === 0 ? "бронзы" : progress.tier === 1 ? "серебра" : "золота"}: ${progress.target - progress.solved}`}
+        </strong>
+        <progress value={progress.solved} max={progress.total} />
+      </button>
+      <div key={month} className="calendar" aria-label="Календарь задач">
         {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((d) => (
           <small key={d}>{d}</small>
         ))}

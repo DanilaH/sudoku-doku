@@ -313,6 +313,19 @@ export default function Doku() {
   }, [external, platformPause, adBusy, state.settings.sound]);
   useEffect(() => {
     document.documentElement.dataset.theme = state.settings.theme;
+    const updateChrome = () =>
+      document
+        .querySelector('meta[name="theme-color"]')
+        ?.setAttribute(
+          "content",
+          getComputedStyle(document.documentElement)
+            .getPropertyValue("--paper")
+            .trim(),
+        );
+    updateChrome();
+    const media = matchMedia("(prefers-color-scheme: dark)");
+    media.addEventListener("change", updateChrome);
+    return () => media.removeEventListener("change", updateChrome);
   }, [state.settings.theme]);
   useEffect(() => {
     if (game && clockGame.current !== game.id) {
@@ -322,6 +335,7 @@ export default function Doku() {
     }
     clock.current.setRunning(running, performance.now());
     if (!running) {
+      setClockMs(clock.current.value(performance.now()));
       checkpoint();
       const g = sref.current.current;
       if (g)
@@ -649,7 +663,7 @@ export default function Doku() {
         )
           playSound("mode");
       }}
-      className={`app ${page === "play" ? "game-page" : ""} ${isAndroid() || import.meta.env.MODE === "yandex" ? "monetized" : ""} ${state.settings.largeDigits ? "large-digits" : ""}`}
+      className={`app page-${page} ${page === "play" ? "game-page" : ""} ${isAndroid() || import.meta.env.MODE === "yandex" ? "monetized" : ""} ${state.settings.largeDigits ? "large-digits" : ""}`}
     >
       <header className="top">
         <button
@@ -667,12 +681,24 @@ export default function Doku() {
         >
           <Glyph name={page === "home" ? "settings" : "back"} />
         </button>
-        <span className="wordmark">
-          СУДОКУ <span> / спокойно</span>
-        </span>
-        <span className="save-status" role="status">
+        <span className="wordmark">Судоку</span>
+        <span className="save-status" role="status" aria-live="off">
           {saving ? "Сохраняем…" : "Сохранено"}
         </span>
+        {page === "play" && game && !completed && (
+          <button
+            className="icon-button"
+            aria-label="Пауза"
+            onClick={() => {
+              clock.current.setRunning(false, performance.now());
+              setClockMs(clock.current.value(performance.now()));
+              checkpoint();
+              setPaused(true);
+            }}
+          >
+            <Glyph name="pause" />
+          </button>
+        )}
         {page === "play" && (
           <button
             className="icon-button"
@@ -705,62 +731,36 @@ export default function Doku() {
       {page === "home" && (
         <section className="home">
           <div className="intro">
-            <span className="eyebrow">ОДНО ПОЛЕ. НИКАКОЙ СПЕШКИ.</span>
-            <h1>
-              Хороший повод
-              <br />
-              остановиться.
-            </h1>
-            <p>
-              Девять цифр. Один следующий шаг.
-              <br />
-              Ошибки можно исправлять.
-            </p>
-          </div>
-          <div className="home-mark" aria-hidden="true">
-            <span>1</span>
-            <span />
-            <span>7</span>
-            <span />
-            <span>9</span>
-            <span />
-            <span>4</span>
-            <span />
-            <span>2</span>
+            <h1>Судоку</h1>
           </div>
           {state.normal && !state.normal.completed && (
-            <button
-              className="continue"
-              disabled={Boolean(failure)}
-              onClick={() => resume(state.normal!)}
-            >
-              <span>
-                <strong>Продолжить партию</strong>
-                <small>
-                  {labels[state.normal.difficulty]} ·{" "}
-                  {time(state.normal.activeMs)} ·{" "}
-                  {board(state.normal).filter(Boolean).length}/81 клеток
-                </small>
-              </span>
-              <span>→</span>
-            </button>
+            <div className="resume-card">
+              <div className="resume-meta">
+                <h2>{labels[state.normal.difficulty]} уровень</h2>
+                <span>{time(state.normal.activeMs)}</span>
+              </div>
+              <div className="resume-progress">
+                <span
+                  style={{
+                    width: `${(board(state.normal).filter(Boolean).length / 81) * 100}%`,
+                  }}
+                />
+              </div>
+              <p>
+                {board(state.normal).filter(Boolean).length} из 81 клеток
+                заполнено
+              </p>
+              <button
+                className="primary continue"
+                disabled={Boolean(failure)}
+                onClick={() => resume(state.normal!)}
+              >
+                Продолжить партию <span>→</span>
+              </button>
+            </div>
           )}
-          <button className="daily-card" onClick={() => setPage("daily")}>
-            <span>
-              <strong>Задача дня</strong>
-              <small>
-                {localDate()} ·{" "}
-                {state.daily[localDate()]?.completed
-                  ? "Решено ✓"
-                  : state.daily[localDate()]
-                    ? "Продолжить"
-                    : "Новое поле каждый день"}
-              </small>
-            </span>
-            <span>→</span>
-          </button>
           <div className="new-game">
-            <h2>Новая партия</h2>
+            <h2>Новая игра</h2>
             <div className="levels" role="group" aria-label="Сложность">
               {levels.map((l) => (
                 <button
@@ -773,29 +773,47 @@ export default function Doku() {
                 </button>
               ))}
             </div>
-            <p className="difficulty-description">
-              {chosen === "EASY"
-                ? "Начните с единственных кандидатов."
-                : chosen === "MEDIUM"
-                  ? "Ищите связи между строками и блоками."
-                  : "Замечайте пары и исключайте лишнее."}
-            </p>
+
             <button
-              className="primary"
+              className={`primary ${state.normal && !state.normal.completed ? "secondary" : ""}`}
               disabled={Boolean(failure)}
               onClick={() => requestNew(chosen)}
             >
               Начать игру <span>→</span>
             </button>
           </div>
+          <button className="daily-card" onClick={() => setPage("daily")}>
+            <span className="date-badge" aria-hidden="true">
+              <small>
+                {new Date()
+                  .toLocaleDateString("ru", { month: "short" })
+                  .replace(".", "")}
+              </small>
+              {new Date().getDate()}
+            </span>
+            <span>
+              <strong>Задача дня</strong>
+              <small>
+                {new Date().toLocaleDateString("ru", {
+                  day: "numeric",
+                  month: "long",
+                })}{" "}
+                ·{" "}
+                {state.daily[localDate()]?.completed
+                  ? "Решено ✓"
+                  : state.daily[localDate()]
+                    ? "Продолжить"
+                    : "Новое поле каждый день"}
+              </small>
+            </span>
+            <span>→</span>
+          </button>
           <nav className="home-links">
             <button onClick={showTutorial}>Как играть</button>
             <button onClick={() => setPage("stats")}>Статистика</button>
             <button onClick={showSettings}>Настройки</button>
           </nav>
-          <p className="footnote">
-            900 проверенных задач · Можно играть без сети
-          </p>
+          <p className="footnote">900 задач · 3 уровня сложности</p>
         </section>
       )}
       {page === "play" && game && (
@@ -807,22 +825,12 @@ export default function Doku() {
                 {labels[game.difficulty]}
                 {game.replay ? " · повтор" : ""}
               </span>
-              <h1>{completed ? "Поле собрано." : "Шаг за шагом."}</h1>
             </div>
             <div className="clock">
               {state.settings.showTimer && (
                 <span aria-label="Активное время">
                   {time(completed ? game.activeMs : clockMs)}
                 </span>
-              )}
-              {!completed && (
-                <button
-                  className="icon-button"
-                  aria-label="Пауза"
-                  onClick={() => setPaused(true)}
-                >
-                  <Glyph name="pause" />
-                </button>
               )}
             </div>
           </div>
@@ -915,12 +923,11 @@ export default function Doku() {
             <div className="game-controls">
               {completed ? (
                 <div className="result">
-                  <span className="eyebrow">ГОТОВО</span>
-                  <h2>
-                    Все цифры
-                    <br />
-                    на своих местах.
-                  </h2>
+                  <div className="win-mark" aria-hidden="true">
+                    <Glyph name="check" />
+                  </div>
+                  <h2>Судоку решено</h2>
+                  <p className="result-caption">Все цифры на своих местах.</p>
                   <dl>
                     <div>
                       <dt>Активное время</dt>
@@ -956,34 +963,13 @@ export default function Doku() {
                 </div>
               ) : (
                 <>
-                  <div
-                    className="input-modes"
-                    role="group"
-                    aria-label="Режим ввода"
-                  >
-                    {(["cell", "digit"] as const).map((mode) => (
-                      <button
-                        key={mode}
-                        disabled={!running}
-                        aria-pressed={(game.inputMode ?? "cell") === mode}
-                        onClick={() =>
-                          gameAction((g) => ({ ...g, inputMode: mode }))
-                        }
-                      >
-                        {mode === "cell" ? "Клетка → цифра" : "Цифра → клетки"}
-                      </button>
-                    ))}
-                  </div>
                   <div className="tools">
                     <button
-                      aria-pressed={game.noteMode}
-                      onClick={() =>
-                        gameAction((g) => ({ ...g, noteMode: !g.noteMode }))
-                      }
-                      disabled={!running}
+                      onClick={() => gameAction((g) => travel(g))}
+                      disabled={!running || !game.undo.length}
                     >
-                      <Glyph name="note" />
-                      <span>Заметки</span>
+                      <Glyph name="undo" />
+                      <span>Отмена</span>
                     </button>
                     <button
                       onClick={() => gameAction(erase)}
@@ -997,21 +983,20 @@ export default function Doku() {
                       <span>Стереть</span>
                     </button>
                     <button
-                      onClick={() => gameAction((g) => travel(g))}
-                      disabled={!running || !game.undo.length}
+                      aria-label="Заметки"
+                      aria-pressed={game.noteMode}
+                      onClick={() =>
+                        gameAction((g) => ({ ...g, noteMode: !g.noteMode }))
+                      }
+                      disabled={!running}
                     >
-                      <Glyph name="undo" />
-                      <span>Отмена</span>
+                      <span className="note-state" aria-hidden="true">
+                        {game.noteMode ? "Вкл" : "Выкл"}
+                      </span>
+                      <Glyph name="note" />
+                      <span>Заметки</span>
                     </button>
                     <button
-                      onClick={() => gameAction((g) => travel(g, true))}
-                      disabled={!running || !game.redo.length}
-                    >
-                      <Glyph name="redo" />
-                      <span>Повтор</span>
-                    </button>
-                    <button
-                      className="mobile-assist"
                       disabled={!running}
                       onClick={() => {
                         const h = gameHint(game);
@@ -1027,16 +1012,6 @@ export default function Doku() {
                     >
                       <Glyph name="hint" />
                       <span>Подсказка</span>
-                    </button>
-                    <button
-                      className="mobile-assist"
-                      disabled={!running}
-                      onClick={() =>
-                        setModal({ kind: "check", cells: errors(game) })
-                      }
-                    >
-                      <Glyph name="check" />
-                      <span>Проверить</span>
                     </button>
                   </div>
                   <p className="input-caption">
@@ -1082,23 +1057,44 @@ export default function Doku() {
                       </button>
                     ))}
                   </div>
-                  <div className="assists">
+                  <div className="secondary-tools">
+                    <details className="mode-picker">
+                      <summary aria-label="Режим ввода">
+                        {game.inputMode === "digit"
+                          ? "Цифра → клетки"
+                          : "Клетка → цифра"}{" "}
+                        <span>⌄</span>
+                      </summary>
+                      <div
+                        className="input-modes"
+                        role="group"
+                        aria-label="Способ ввода"
+                      >
+                        {(["cell", "digit"] as const).map((mode) => (
+                          <button
+                            key={mode}
+                            disabled={!running}
+                            aria-pressed={(game.inputMode ?? "cell") === mode}
+                            onClick={(e) => {
+                              gameAction((g) => ({ ...g, inputMode: mode }));
+                              e.currentTarget
+                                .closest("details")
+                                ?.removeAttribute("open");
+                            }}
+                          >
+                            {mode === "cell"
+                              ? "Клетка → цифра"
+                              : "Цифра → клетки"}
+                          </button>
+                        ))}
+                      </div>
+                    </details>
                     <button
-                      disabled={!running}
-                      onClick={() => {
-                        const h = gameHint(game);
-                        setModal({ kind: "hint", value: h, index: 0 });
-                        void event("hint_used", {
-                          technique:
-                            h.kind === "logical"
-                              ? h.steps.at(-1)!.technique
-                              : "none",
-                          applied: false,
-                        });
-                      }}
+                      disabled={!running || !game.redo.length}
+                      onClick={() => gameAction((g) => travel(g, true))}
                     >
-                      <Glyph name="hint" />
-                      Подсказка
+                      <Glyph name="redo" />
+                      <span>Повтор</span>
                     </button>
                     <button
                       disabled={!running}
@@ -1107,7 +1103,7 @@ export default function Doku() {
                       }
                     >
                       <Glyph name="check" />
-                      Проверить
+                      <span>Проверить</span>
                     </button>
                   </div>
                   {b.every(Boolean) && !completed && (
@@ -1122,11 +1118,6 @@ export default function Doku() {
                       </button>
                     </p>
                   )}
-                  <p className="game-note">
-                    Без жизней и штрафов.
-                    <br />
-                    Повторный ввод цифры очищает клетку.
-                  </p>
                 </>
               )}
             </div>
@@ -1144,10 +1135,9 @@ export default function Doku() {
       )}
       {page === "settings" && (
         <section className="simple">
-          <span className="eyebrow">ПОД ВАС</span>
           <h1>Настройки</h1>
           <h2>Оформление</h2>
-          <div className="levels">
+          <div className="levels" aria-label="Цветовая тема">
             {(["system", "light", "dark"] as const).map((t, i) => (
               <button
                 key={t}
@@ -1159,70 +1149,78 @@ export default function Doku() {
               </button>
             ))}
           </div>
-          <label className="setting">
-            <span>
-              <strong>Подсвечивать конфликты</strong>
-              <small>Только повторы в строке, столбце или блоке</small>
-            </span>
-            <input
-              type="checkbox"
-              checked={state.settings.conflicts}
-              onChange={(e) => settings({ conflicts: e.target.checked })}
-            />
-          </label>
-          <label className="setting">
-            <span>
-              <strong>Не выключать экран</strong>
-              <small>Только во время активной игры</small>
-            </span>
-            <input
-              type="checkbox"
-              checked={state.settings.keepAwake}
-              onChange={(e) => settings({ keepAwake: e.target.checked })}
-            />
-          </label>
           {(
             [
-              ["sound", "Звуки", "Тихий отклик на ввод и действия"],
               [
-                "showTimer",
-                "Показывать таймер",
-                "Время учитывается и при скрытом таймере",
-              ],
-              ["largeDigits", "Крупные цифры", "Увеличить цифры на поле"],
-              [
-                "highlightAreas",
-                "Подсвечивать строку, столбец и блок",
-                "Ориентиры для выбранной клетки",
-              ],
-              [
-                "highlightSame",
-                "Подсвечивать одинаковые цифры",
-                "Все вхождения выбранной цифры",
-              ],
-              [
-                "autoCheck",
-                "Проверять ввод по решению",
-                "Неверные цифры подчёркиваются сразу",
+                "Экран",
+                [
+                  ["largeDigits", "Крупные цифры", "Увеличить цифры на поле"],
+                  [
+                    "showTimer",
+                    "Показывать таймер",
+                    "При скрытом таймере время тоже учитывается",
+                  ],
+                  [
+                    "keepAwake",
+                    "Не выключать экран",
+                    "Только во время активной игры",
+                  ],
+                ],
               ],
               [
-                "autoNotes",
-                "Убирать связанные заметки",
-                "После ввода цифры удалить её из заметок соседних клеток. Отмена возвращает их.",
+                "Подсветка",
+                [
+                  [
+                    "highlightAreas",
+                    "Строка, столбец и блок",
+                    "Области выбранной клетки",
+                  ],
+                  [
+                    "highlightSame",
+                    "Одинаковые цифры",
+                    "Все вхождения выбранной цифры",
+                  ],
+                  [
+                    "conflicts",
+                    "Подсвечивать конфликты",
+                    "Повторы в строке, столбце или блоке",
+                  ],
+                  [
+                    "autoCheck",
+                    "Проверять ввод по решению",
+                    "Неверные цифры подчёркиваются сразу",
+                  ],
+                ],
+              ],
+              [
+                "Управление",
+                [
+                  [
+                    "autoNotes",
+                    "Убирать связанные заметки",
+                    "Ввод убирает эту цифру из заметок соседних клеток. Отмена возвращает их.",
+                  ],
+                  ["sound", "Звуки", "Отклик на ввод и действия"],
+                ],
               ],
             ] as const
-          ).map(([key, title, description]) => (
-            <label className="setting" key={key}>
-              <span>
-                <strong>{title}</strong>
-                <small>{description}</small>
-              </span>
-              <input
-                type="checkbox"
-                checked={state.settings[key]}
-                onChange={(e) => settings({ [key]: e.target.checked })}
-              />
-            </label>
+          ).map(([title, items]) => (
+            <section className="settings-group" key={title}>
+              <h2>{title}</h2>
+              {items.map(([key, label, description]) => (
+                <label className="setting" key={key}>
+                  <span>
+                    <strong>{label}</strong>
+                    <small>{description}</small>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={state.settings[key]}
+                    onChange={(e) => settings({ [key]: e.target.checked })}
+                  />
+                </label>
+              ))}
+            </section>
           ))}
           <button className="text-button" onClick={showTutorial}>
             Как играть →
@@ -1236,12 +1234,11 @@ export default function Doku() {
           <button className="text-button" onClick={() => setPage("privacy")}>
             Конфиденциальность и данные →
           </button>
-          <p className="footnote">Версия 0.2 · Банк 1</p>
+          <p className="footnote">Версия 0.3 · Банк 1</p>
         </section>
       )}
       {page === "stats" && (
         <section className="simple">
-          <span className="eyebrow">ВАШИ ПАРТИИ</span>
           <h1>Статистика</h1>
           <div className="total">
             <strong>{state.results.filter((r) => !r.dailyDate).length}</strong>
@@ -1297,7 +1294,6 @@ export default function Doku() {
       {page === "tutorial" && <Tutorial done={back} />}
       {page === "privacy" && (
         <section className="simple">
-          <span className="eyebrow">ДАННЫЕ</span>
           <h1>Конфиденциальность</h1>
           <p>
             Партия, заметки, настройки и статистика сохраняются на устройстве.

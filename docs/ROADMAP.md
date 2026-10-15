@@ -42,3 +42,7 @@ Implemented scope: [POLISH_SPEC.md](POLISH_SPEC.md).
 ## Version 0.3 — reference-based interface redesign
 
 Replaces the rejected beige/green interface and the exploratory A/B palettes. Uses the supplied Brainatee screenshots as the primary visual reference. See [UI_REDESIGN.md](UI_REDESIGN.md) for decisions, scope and acceptance. Core, bank and save schema remain v2-compatible; no new game systems are added.
+
+
+## Версия 0.4 — отклик и календарные трофеи
+Реализованы короткие переходы, новые синтезированные звуки с отключением, архив с января 2025 года и месячные медали за 7/15/все дни. Сохранён банк и его прежнее распределение по датам. [Решения и проверки](MOTION_TROPHIES.md).

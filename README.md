@@ -1,6 +1,12 @@
-# Судоку — спокойно
+# Судоку
 
 TypeScript engine, React/DOM interface, Vite builds, Capacitor Android wrapper, separate Yandex Games package. Kotlin remains the offline generator and regression reference. See [docs/ROADMAP.md](docs/ROADMAP.md) for scope and release gates.
+
+## Version 0.3 — interface redesign
+
+The shipped interface follows the reviewed Brainatee Sudoku screenshots: neutral surfaces, clear 3×3 borders, regular-weight digits, solid muted-blue number keys and four primary tools. Narrow phones use two keypad rows; wider phones use one row when every key remains at least 48px wide. Input mode, redo and checking sit below the keypad. Settings are grouped; home, calendar, statistics, tutorials, dialogs and both themes use the same visual system.
+
+The save format and puzzle bank remain unchanged. A pause-display timing issue is fixed: the timer shows its final active value immediately when paused. Design decisions and acceptance: [docs/UI_REDESIGN.md](docs/UI_REDESIGN.md).
 
 ## Version 0.2
 

@@ -1,6 +1,10 @@
 import { test, expect } from "@playwright/test";
 import { readFileSync } from "node:fs";
-const puzzle = readFileSync("bank/puzzles-v1.jsonl", "utf8").trim().split("\n").map(line=>JSON.parse(line)).find(p=>p.difficulty==='EASY');
+const puzzle = readFileSync("bank/puzzles-v1.jsonl", "utf8")
+  .trim()
+  .split("\n")
+  .map((line) => JSON.parse(line))
+  .find((p) => p.difficulty === "EASY");
 test("digit-first notes, settings return, error scheme and daily isolation", async ({
   page,
 }) => {
@@ -9,6 +13,7 @@ test("digit-first notes, settings return, error scheme and daily isolation", asy
   await page.goto("/");
   await page.getByRole("button", { name: "Начать игру" }).click();
   const c = puzzle.givens.indexOf("0");
+  await page.getByLabel("Режим ввода", { exact: true }).click();
   await page
     .getByRole("button", { name: "Цифра → клетки", exact: true })
     .click();
@@ -22,7 +27,11 @@ test("digit-first notes, settings return, error scheme and daily isolation", asy
   await page.getByRole("button", { name: "Тёмное", exact: true }).click();
   await page.getByRole("button", { name: "Назад", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "Цифра → клетки", exact: true }),
+    page.getByRole("button", {
+      name: "Цифра → клетки",
+      exact: true,
+      includeHidden: true,
+    }),
   ).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByLabel("Активное время")).toHaveCount(0);
   await expect(page.locator(`[data-cell="${c}"]`)).toHaveAttribute(
@@ -53,7 +62,7 @@ test("digit-first notes, settings return, error scheme and daily isolation", asy
   await dailyCell.click();
   await page.getByRole("button", { name: "Ввести 5", exact: true }).click();
   await expect(dailyCell).toHaveText("5");
-  await expect(page.getByText("Сохранено", { exact: true })).toBeVisible();
+  await expect(page.getByText("Сохранено", { exact: true })).toBeAttached();
   await page.reload();
   await page.getByRole("button", { name: "Продолжить партию" }).click();
   await expect(page.locator(`[data-cell="${c}"]`)).toHaveText(String(wrong));

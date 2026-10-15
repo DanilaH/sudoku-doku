@@ -38,3 +38,7 @@ Implemented scope: [POLISH_SPEC.md](POLISH_SPEC.md).
 - Five interactive tutorial steps, available again from the home screen and settings.
 - Deterministic daily challenges and past-date calendar; separate ordinary/daily save slots and daily totals; v1 → v2 migration.
 - Core regression, persistence and browser tests cover the additions. Human difficulty assessment and live advertising/moderation remain the release gates above.
+
+## Version 0.3 — reference-based interface redesign
+
+Replaces the rejected beige/green interface and the exploratory A/B palettes. Uses the supplied Brainatee screenshots as the primary visual reference. See [UI_REDESIGN.md](UI_REDESIGN.md) for decisions, scope and acceptance. Core, bank and save schema remain v2-compatible; no new game systems are added.

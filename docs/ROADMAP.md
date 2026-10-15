@@ -27,3 +27,14 @@ HANDOFF.md is retained as the original research/specification. This roadmap take
 A debug APK is for testing, not publication. Production compilation rejects absent/demo ad IDs or an absent analytics key. A release must be signed with the owner's long-lived key. Test using demo blocks; never click live ads during QA. Do not claim proven commercial demand or revenue.
 
 Final verification and remaining publication inputs: [reports/PROJECT_READINESS.md](../reports/PROJECT_READINESS.md).
+
+## Version 0.2 — competitor review follow-up
+
+Implemented scope: [POLISH_SPEC.md](POLISH_SPEC.md).
+
+- Two input modes; notes in both; optional related-note cleanup as one reversible move.
+- Digit completion markers; configurable highlights, large digits, timer and sound; settings accessible from the board without losing selection.
+- Error diagrams with navigation, full-board mistake feedback, short transitions and reduced-motion support.
+- Five interactive tutorial steps, available again from the home screen and settings.
+- Deterministic daily challenges and past-date calendar; separate ordinary/daily save slots and daily totals; v1 → v2 migration.
+- Core regression, persistence and browser tests cover the additions. Human difficulty assessment and live advertising/moderation remain the release gates above.

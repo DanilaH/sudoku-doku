@@ -1,5 +1,9 @@
 # Судоку
 
+## Версия 0.4
+Переходы экранов и диалогов, отклик на нажатия, новые короткие звуки и помесячные трофеи. Архив задач расширен до января 2025 года без изменения уже существовавших задач 2026 года. [Подробности](docs/MOTION_TROPHIES.md).
+
+
 TypeScript engine, React/DOM interface, Vite builds, Capacitor Android wrapper, separate Yandex Games package. Kotlin remains the offline generator and regression reference. See [docs/ROADMAP.md](docs/ROADMAP.md) for scope and release gates.
 
 ## Version 0.3 — interface redesign

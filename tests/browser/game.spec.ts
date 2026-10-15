@@ -16,6 +16,7 @@ test('play, notes, undo, restore, pause, hint and themes',async({page})=>{
  expect(failures).toEqual([]);expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
 });
 test('completion persists once, offline works, replacement is explicit',async({page,context})=>{
+ test.setTimeout(60000); // Full puzzle: Playwright waits for every button animation to settle.
  await page.goto('/');await page.getByRole('button',{name:'Начать игру'}).click();const p=ps.find(p=>p.difficulty==='EASY');
  await page.getByRole('button',{name:'На главную',exact:true}).click();await page.getByRole('button',{name:'Начать игру'}).click();await expect(page.getByText('Заменить текущую партию?')).toBeVisible();await page.getByRole('button',{name:'Отмена',exact:true}).click();await page.getByRole('button',{name:'Продолжить партию'}).click();
  await context.setOffline(true);for(let c=0;c<81;c++)if(p.givens[c]==='0'){await page.locator(`[data-cell="${c}"]`).click();await page.getByRole('button',{name:`Ввести ${p.solution[c]}`,exact:true}).click()}

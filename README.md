@@ -2,6 +2,14 @@
 
 TypeScript engine, React/DOM interface, Vite builds, Capacitor Android wrapper, separate Yandex Games package. Kotlin remains the offline generator and regression reference. See [docs/ROADMAP.md](docs/ROADMAP.md) for scope and release gates.
 
+## Version 0.2
+
+Play the web build at https://danilah.github.io/sudoku-doku/.
+
+Two input modes (cell → digit / digit → cells), optional peer-note cleanup with atomic undo, completed-digit markers, in-game settings, sound, larger digits, interactive tutorial, error diagrams and an archive of daily challenges. Ordinary and daily progress are stored independently; schema v1 saves migrate to v2 without losing history. Daily tasks follow the device's local date, use the frozen bank v1 and repeat after 900 dates. Daily and ordinary results have separate totals.
+
+Implementation scope and acceptance: [docs/POLISH_SPEC.md](docs/POLISH_SPEC.md). Automated coverage: 16 core/platform unit tests, 7 web browser scenarios, 2 Yandex SDK scenarios, and the existing Android emulator checks. Screenshots cover small phones, landscape, light/dark themes, larger digits and the daily calendar.
+
 ## Web
 
 Node 24 / npm. Exact dependencies are in package-lock.json.

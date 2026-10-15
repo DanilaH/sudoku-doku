@@ -73,7 +73,7 @@ public class OfflineGameTest {
   try(ActivityScenario<MainActivity>s=ActivityScenario.launch(MainActivity.class)){
    waitFor(s,"!!document.querySelector('.continue')");evaluate(s,"document.querySelector('.continue').click()");
    waitFor(s,"!!document.querySelector('.board') && !document.querySelector('.cell').disabled");
-   evaluate(s,"Array.from(document.querySelectorAll('.tools button')).find(b=>b.innerText==='Повтор').click()");
+   evaluate(s,"Array.from(document.querySelectorAll('.secondary-tools button')).find(b=>b.innerText==='Повтор').click()");
    waitFor(s,"document.querySelector('.cell.selected').innerText==='3' && document.querySelector('.save-status').innerText==='Сохранено'");
    screenshot("android-restored.png");
   }

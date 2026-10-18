@@ -419,7 +419,10 @@ export default function Doku() {
     const handler = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
       if (e.key !== "Escape" && !running) return;
-      if (modal) return;
+      if (modal) {
+        if (e.key === "Escape") { e.preventDefault(); setModal(null); }
+        return;
+      }
       if (
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLSelectElement ||
@@ -1379,7 +1382,7 @@ export default function Doku() {
         </div>
       </div>
       {modal && (
-        <ModalView close={() => setModal(null)}>
+        <ModalView key={modal.kind} close={() => setModal(null)}>
           <>
             {modal.kind === "difficulty" ? (
               <>

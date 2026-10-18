@@ -10,7 +10,7 @@ import {
   type Game,
 } from "../src/core/game";
 it("extends archive without changing the v1 2026 mapping", () => {
-  for (let i = 0; i < 900; i++) {
+  for (let i = 0; i < 291; i++) {
     const date = new Date(Date.UTC(2026, 0, 1 + i)).toISOString().slice(0, 10);
     const level = (["EASY", "MEDIUM", "HARD"] as const)[i % 3];
     expect(dailyPuzzle(date)).toEqual(

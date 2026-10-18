@@ -12,3 +12,4 @@ test-results/
 artifacts/
 *.jks
 *.keystore
+bank/daily-checkpoint.json

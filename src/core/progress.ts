@@ -1,0 +1,7 @@
+import type {State,Result} from './game';
+import type {Difficulty} from './engine';
+import type {Puzzle} from './bank';
+export function bankProgress(ps: Pick<Puzzle,'puzzle_id'|'difficulty'>[], results: Result[], level?:Difficulty){const bank=ps.filter(p=>!level||p.difficulty===level);const ids=new Set(results.filter(r=>!r.dailyDate).map(r=>r.puzzleId));return {solved:bank.filter(p=>ids.has(p.puzzle_id)).length,total:bank.length}}
+/** Legacy saves only retain completed sessions and the current unfinished slots. */
+export function knownActiveMs(s:State){return s.results.reduce((n,r)=>n+r.activeMs,0)+[s.normal,...Object.values(s.daily)].reduce((n,g)=>n+(g&&!g.completed?g.activeMs:0),0)}
+export function statistics(s:State,level?:Difficulty){const rs=s.results.filter(r=>!level||r.difficulty===level);const completedMs=rs.reduce((n,r)=>n+r.activeMs,0);const unfinished=[s.normal,...Object.values(s.daily)].filter(g=>g&&!g.completed&&(!level||g.difficulty===level));return {count:rs.length,unassisted:rs.filter(r=>r.hints===0).length,completedMs,average:rs.length?completedMs/rs.length:null,activeMs:level?(s.activeByLevel?.[level]??completedMs+unfinished.reduce((n,g)=>n+g!.activeMs,0)):(s.activeByLevel?Object.values(s.activeByLevel).reduce((n,v)=>n+v,0):knownActiveMs(s)),best:(assisted:boolean)=>{const values=rs.filter(r=>(r.hints>0)===assisted).map(r=>r.activeMs);return values.length?Math.min(...values):null}}}

@@ -44,6 +44,9 @@ public class OfflineGameTest {
   int cell;
   try(ActivityScenario<MainActivity>s=ActivityScenario.launch(MainActivity.class)){
    waitFor(s,"!!document.querySelector('.new-game .primary')");
+   s.onActivity(a->{int[] xy=new int[2];a.getBridge().getWebView().getLocationOnScreen(xy);androidx.core.view.WindowInsetsCompat insets=androidx.core.view.ViewCompat.getRootWindowInsets(a.getWindow().getDecorView());assertNotNull(insets);assertTrue("WebView below status bar",xy[1]>=insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars()).top);});
+   assertEquals("true",evaluate(s,"document.documentElement.scrollHeight <= innerHeight"));
+   screenshot("android-home-06.png");
    evaluate(s,"document.querySelector('.new-game .primary').click()");
    waitFor(s,"!!document.querySelector('.difficulty-list button')");
    evaluate(s,"document.querySelector('.difficulty-list button').click()");

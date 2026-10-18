@@ -56,7 +56,7 @@ test("digit-first notes, settings return, error scheme and daily isolation", asy
     fullPage: true,
   });
   await page.getByRole("button", { name: "На главную", exact: true }).click();
-  await page.getByRole("button", { name: "Календарь задач" }).click();
+  await page.getByRole("button", { name: "Календарь" }).click();
   await page.getByRole("button", { name: "Играть сегодня" }).click();
   const dailyCell = page.locator(".cell.entry").first();
   await dailyCell.click();
@@ -67,7 +67,7 @@ test("digit-first notes, settings return, error scheme and daily isolation", asy
   await page.getByRole("button", { name: "Продолжить партию" }).click();
   await expect(page.locator(`[data-cell="${c}"]`)).toHaveText(String(wrong));
   await page.getByRole("button", { name: "На главную", exact: true }).click();
-  await page.getByRole("button", { name: "Календарь задач" }).click();
+  await page.getByRole("button", { name: "Календарь" }).click();
   await page.screenshot({
     path: "artifacts/daily-calendar.png",
     fullPage: true,

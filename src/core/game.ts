@@ -74,6 +74,7 @@ export interface AdCaps {
   firstCompleted: boolean;
 }
 export interface State {
+  activeByLevel?: Record<Difficulty, number>;
   version: 2;
   revision: number;
   current: Game | null;
@@ -244,6 +245,14 @@ export function applyHint(g: Game, steps: Step[], autoNotes = false): Game {
 }
 /** Current game and result live in one snapshot, persisted by a single atomic write. */
 export function withGame(state: State, g: Game, now = Date.now()): State {
+  const activeByLevel = state.activeByLevel ? {...state.activeByLevel} : Object.fromEntries(
+    (["EASY","MEDIUM","HARD"] as Difficulty[]).map(level => [level,
+      state.results.filter(r=>r.difficulty===level).reduce((n,r)=>n+r.activeMs,0) +
+      [state.normal,...Object.values(state.daily)].reduce((n,slot)=>n+(slot&&!slot.completed&&slot.difficulty===level?slot.activeMs:0),0)
+    ])) as Record<Difficulty,number>;
+  const previous = g.dailyDate ? state.daily[g.dailyDate] : state.normal;
+  const baseline = previous?.id === g.id ? previous.activeMs : state.results.find(r=>r.gameId===g.id)?.activeMs ?? 0;
+  activeByLevel[g.difficulty] += Math.max(0,g.activeMs-baseline);
   const results = [...state.results];
   if (g.completed && !results.some((r) => r.gameId === g.id))
     results.push({
@@ -260,6 +269,7 @@ export function withGame(state: State, g: Game, now = Date.now()): State {
     ...state,
     revision: state.revision + 1,
     current: g,
+    activeByLevel,
     normal: g.dailyDate ? state.normal : g,
     daily: g.dailyDate ? { ...state.daily, [g.dailyDate]: g } : state.daily,
     results,
@@ -333,6 +343,8 @@ export function validateState(value: unknown): State {
     typeof s.ads.firstCompleted !== "boolean"
   )
     throw Error("Unsupported or corrupt save");
+  if (s.activeByLevel !== undefined && (!s.activeByLevel ||
+    (["EASY","MEDIUM","HARD"] as Difficulty[]).some(l=>!okNumber(s.activeByLevel![l])))) throw Error("Corrupt activity totals");
   const ids = new Set<string>();
   for (const r of s.results) {
     if (

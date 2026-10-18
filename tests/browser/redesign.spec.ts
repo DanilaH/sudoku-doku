@@ -90,7 +90,7 @@ test("all redesigned screens, dark notes and compact controls remain usable", as
     fullPage: true,
   });
   await page.getByRole("button", { name: "На главную", exact: true }).click();
-  await page.getByRole("button", { name: "Календарь задач" }).click();
+  await page.getByRole("button", { name: "Календарь" }).click();
   await page.waitForTimeout(200);
   await page.screenshot({
     path: "artifacts/redesign-calendar-dark.png",

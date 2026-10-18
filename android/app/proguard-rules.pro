@@ -23,3 +23,7 @@
 # ActivityScenario and the JS bridge must also work in the minified smoke build.
 -keep class ru.danilah.sudokudoku.MainActivity { *; }
 -keepattributes SourceFile,LineNumberTable
+
+# Capacitor discovers plugin metadata at runtime; R8 full mode must retain annotation types.
+-keepattributes RuntimeVisibleAnnotations,RuntimeInvisibleAnnotations,AnnotationDefault
+-keep @interface com.getcapacitor.** { *; }

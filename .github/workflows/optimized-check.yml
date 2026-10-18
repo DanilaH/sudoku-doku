@@ -1,0 +1,63 @@
+name: Optimized Android offline checks
+on:
+  push:
+    branches: [feature/playtest-07]
+    paths: ['android/**', 'src/**', 'public/**', 'package*.json', '.github/workflows/optimized-check.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14.3'
+      - run: npm ci && npm test && npm run android:sync
+      - run: mkdir -p artifacts/release
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          script: |
+            adb shell svc wifi disable
+            adb shell svc data disable
+            gradle -p android :app:assembleReleaseSmoke :app:assembleReleaseSmokeAndroidTest -PreleaseSmoke=true
+            cp android/app/build/outputs/apk/releaseSmoke/app-releaseSmoke.apk artifacts/release/sudoku-optimized-preview.apk
+            adb install android/app/build/outputs/apk/releaseSmoke/app-releaseSmoke.apk
+            adb install android/app/build/outputs/apk/androidTest/releaseSmoke/app-releaseSmoke-androidTest.apk
+            adb shell am instrument -w -e class ru.danilah.sudokudoku.OfflineGameTest#offlineFirstLaunchAndNativeSaveRestore ru.danilah.sudokudoku.releasecheck.test/androidx.test.runner.AndroidJUnitRunner | tee artifacts/release/offline.log
+            adb logcat -d -s AndroidRuntime:E > artifacts/release/instrumentation-crash.log
+            python3 -c 'from pathlib import Path; assert "OK (1 test)" in Path("artifacts/release/offline.log").read_text()'
+            adb shell am force-stop ru.danilah.sudokudoku.releasecheck
+            adb shell am instrument -w -e class ru.danilah.sudokudoku.OfflineGameTest#processDeathRestoresRedoHistory ru.danilah.sudokudoku.releasecheck.test/androidx.test.runner.AndroidJUnitRunner | tee artifacts/release/restore.log
+            python3 -c 'from pathlib import Path; assert "OK (1 test)" in Path("artifacts/release/restore.log").read_text()'
+            adb pull /sdcard/Android/data/ru.danilah.sudokudoku.releasecheck/files artifacts/release/screenshots
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: optimized-android-check
+          path: |
+            artifacts/release/
+            android/app/build/outputs/mapping/releaseSmoke/
+            android/app/build/reports/lint-results-releaseSmoke.html

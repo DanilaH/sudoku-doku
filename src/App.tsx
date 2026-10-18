@@ -1384,7 +1384,7 @@ export default function Doku() {
             {modal.kind === "difficulty" ? (
               <>
                 <h2>Выберите сложность</h2>
-                <div className="difficulty-list">{levels.map(level => <button key={level} onClick={() => requestNew(level)}>{labels[level]} <span>→</span></button>)}</div>
+                <div className="difficulty-list">{levels.map(level => <button key={level} aria-label={labels[level]} onClick={() => requestNew(level)}>{labels[level]} <span>→</span></button>)}</div>
               </>
             ) : modal.kind === "new" ? (
               <>

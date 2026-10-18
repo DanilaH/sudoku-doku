@@ -55,10 +55,12 @@ jobs:
             adb install artifacts/production-check.apk
             adb logcat -c
             adb shell am start -W -n ru.danilah.sudokudoku/.MainActivity
-            sleep 8
+            sleep 15
             adb shell uiautomator dump /sdcard/production-ui.xml
             adb pull /sdcard/production-ui.xml artifacts/release/production-ui.xml
-            python3 -c 'from pathlib import Path; assert "Новая игра" in Path("artifacts/release/production-ui.xml").read_text()'
+            adb exec-out screencap -p > artifacts/release/production-home.png
+            adb logcat -d -s AndroidRuntime:E Capacitor/Console:E Capacitor:E > artifacts/release/production-diagnostics.log
+            python3 -c 'from pathlib import Path; assert "Новая игра" in Path("artifacts/release/production-ui.xml").read_text()' 
             adb logcat -d -s AndroidRuntime:E > artifacts/release/production-crash.log
             python3 -c 'from pathlib import Path; assert "FATAL EXCEPTION" not in Path("artifacts/release/production-crash.log").read_text()'
             adb exec-out screencap -p > artifacts/release/production-home.png

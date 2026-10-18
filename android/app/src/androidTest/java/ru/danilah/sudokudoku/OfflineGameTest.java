@@ -14,7 +14,12 @@ import static org.junit.Assert.*;
 
 @RunWith(AndroidJUnit4.class)
 public class OfflineGameTest {
- private android.webkit.WebView webView(MainActivity a){return a.findViewById(com.getcapacitor.android.R.id.webview);}
+ private android.webkit.WebView webView(MainActivity a){android.webkit.WebView web=findWebView(a.getWindow().getDecorView());assertNotNull("WebView exists",web);return web;}
+ private android.webkit.WebView findWebView(android.view.View view){
+  if(view instanceof android.webkit.WebView)return (android.webkit.WebView)view;
+  if(view instanceof android.view.ViewGroup){android.view.ViewGroup group=(android.view.ViewGroup)view;for(int i=0;i<group.getChildCount();i++){android.webkit.WebView web=findWebView(group.getChildAt(i));if(web!=null)return web;}}
+  return null;
+ }
  private void screenshot(String name)throws Exception{
   android.graphics.Bitmap bitmap=InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
   File path=new File(InstrumentationRegistry.getInstrumentation().getTargetContext().getExternalFilesDir(null),name);

@@ -45,6 +45,8 @@ public class OfflineGameTest {
   try(ActivityScenario<MainActivity>s=ActivityScenario.launch(MainActivity.class)){
    waitFor(s,"!!document.querySelector('.new-game .primary')");
    evaluate(s,"document.querySelector('.new-game .primary').click()");
+   waitFor(s,"!!document.querySelector('.difficulty-list button')");
+   evaluate(s,"document.querySelector('.difficulty-list button').click()");
    waitFor(s,"!!document.querySelector('.board') && !document.querySelector('.cell').disabled");
    String c=evaluate(s,"Array.from(document.querySelectorAll('.cell')).findIndex(c=>!c.innerText.trim())");cell=Integer.parseInt(c);
    evaluate(s,"document.querySelector('[data-cell=\""+cell+"\"]').click()");

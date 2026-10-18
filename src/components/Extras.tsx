@@ -7,6 +7,7 @@ export function Calendar({
   start,
   open,
   initialMonth,
+  onMonthChange,
   trophies,
 }: {
   daily: Record<string, Game>;
@@ -14,6 +15,7 @@ export function Calendar({
   start: string;
   open: (date: string) => void;
   initialMonth?: string;
+  onMonthChange?: (month: string) => void;
   trophies: () => void;
 }) {
   const [month, setMonth] = useState(initialMonth ?? today.slice(0, 7));
@@ -23,7 +25,9 @@ export function Calendar({
     offset = (new Date(year, m - 1, 1).getDay() + 6) % 7;
   const shift = (n: number) => {
     const d = new Date(year, m - 1 + n, 1);
-    setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    const next = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    setMonth(next);
+    onMonthChange?.(next);
   };
   return (
     <section className="simple calendar-page">
@@ -64,7 +68,7 @@ export function Calendar({
       </div>
       <button className="month-reward" onClick={trophies}>
         <span>
-          Трофей месяца · {progress.solved}/{progress.total}
+          Медаль месяца · {progress.solved}/{progress.total}
         </span>
         <strong>
           {progress.tier === 3
@@ -161,12 +165,16 @@ export function Tutorial({ done }: { done: () => void }) {
   const [step, setStep] = useState(0),
     [selected, setSelected] = useState(false),
     [digit, setDigit] = useState(false),
-    [value, setValue] = useState(false);
+    [value, setValue] = useState(false),
+    [noteMode, setNoteMode] = useState(false),
+    [noteAdded, setNoteAdded] = useState(false);
   const next = () => {
     setStep(step + 1);
     setSelected(false);
     setDigit(false);
     setValue(false);
+    setNoteMode(false);
+    setNoteAdded(false);
   };
   return (
     <section className="simple tutorial">
@@ -196,14 +204,16 @@ export function Tutorial({ done }: { done: () => void }) {
           </button>
         ))}
       </div>
+      {step === 3 && <><button className="text-button" aria-label="Заметки" aria-pressed={noteMode} onClick={() => setNoteMode(!noteMode)}>Заметки · {noteMode ? "Вкл" : "Выкл"}</button><p role="status">{!selected ? "Выберите пустую клетку" : !noteMode ? "Включите заметки" : value ? "Нажмите 3 ещё раз, чтобы убрать заметку" : noteAdded ? "Готово: заметка удалена" : "Нажмите 3, чтобы добавить заметку"}</p></>}
       {step > 0 && step < 4 && (
         <button
           className={`lesson-digit ${digit ? "active" : ""}`}
           aria-pressed={digit}
-          disabled={step !== 2 && !selected}
+          disabled={(step !== 2 && !selected) || (step === 3 && !noteMode)}
           onClick={() => {
             setDigit(!digit);
             if (step !== 2) setValue(!value);
+            if (step === 3) setNoteAdded(true);
           }}
         >
           3

@@ -41,7 +41,7 @@ import {
 import { Native, isAndroid } from "./platform/native";
 import { DAILY_START, localDate, openDaily } from "./core/daily";
 import { playSound, stopSound } from "./platform/sound";
-import { Trophies } from "./components/Trophies";
+import { Trophy, Trophies } from "./components/Trophies";
 import { monthProgress } from "./core/trophies";
 import { Calendar, Tutorial, ErrorBoard } from "./components/Extras";
 import "./style.css";
@@ -73,6 +73,7 @@ type Page =
   | "tutorial"
   | "trophies";
 type Modal =
+  | { kind: "difficulty" }
   | { kind: "new"; level: Difficulty; replay: boolean }
   | { kind: "hint"; value: Hint; index: number }
   | { kind: "check"; cells: number[] }
@@ -151,8 +152,7 @@ export default function Doku() {
     [external, setExternal] = useState(!document.hasFocus()),
     [platformPause, setPlatformPause] = useState(false),
     [adBusy, setAdBusy] = useState(false),
-    [clockMs, setClockMs] = useState(0),
-    [chosen, setChosen] = useState<Difficulty>("EASY");
+    [clockMs, setClockMs] = useState(0);
   const clock = useRef(new ActiveClock()),
     clockGame = useRef<string | null>(null),
     lastMono = useRef<number | null>(null),
@@ -417,6 +417,9 @@ export default function Doku() {
   }, [loaded]);
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key !== "Escape" && !running) return;
+      if (modal) return;
       if (
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLSelectElement ||
@@ -446,7 +449,7 @@ export default function Doku() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, []);
+  }, [running, page, modal]);
   useEffect(() => {
     const validSlot = running && window.innerHeight >= 740;
     const update = () => {
@@ -635,6 +638,7 @@ export default function Doku() {
     setPage("play");
   }
   function daily(date: string) {
+    setCalendarMonth(date.slice(0, 7));
     resume(openDaily(sref.current, date));
   }
   function settings(patch: Partial<State["settings"]>) {
@@ -752,102 +756,50 @@ export default function Doku() {
         >
           {page === "home" && (
             <section className="home">
-              <div className="intro">
-                <h1>Судоку</h1>
-              </div>
-              {state.normal && !state.normal.completed && (
-                <div className="resume-card">
-                  <div className="resume-meta">
-                    <h2>{labels[state.normal.difficulty]} уровень</h2>
-                    <span>{time(state.normal.activeMs)}</span>
-                  </div>
-                  <div className="resume-progress">
-                    <span
-                      style={{
-                        width: `${(board(state.normal).filter(Boolean).length / 81) * 100}%`,
-                      }}
-                    />
-                  </div>
-                  <p>
-                    {board(state.normal).filter(Boolean).length} из 81 клеток
-                    заполнено
-                  </p>
-                  <button
-                    className="primary continue"
-                    disabled={Boolean(failure)}
-                    onClick={() => resume(state.normal!)}
-                  >
-                    Продолжить партию <span>→</span>
+              <div className="intro"><h1>Судоку</h1></div>
+              <div className="home-columns">
+                <section className="session-card new-game">
+                  {state.normal && !state.normal.completed ? <>
+                    <div className="saved-overview">
+                      <BoardPreview game={state.normal} />
+                      <div><span className="eyebrow">ВАША ПАРТИЯ</span>
+                        <h2>{labels[state.normal.difficulty]} уровень</h2>
+                        <span>{time(state.normal.activeMs)}</span>
+                        <p className="preview-caption">Сохранённое поле</p>
+                      </div>
+                    </div>
+                    <SessionProgress game={state.normal} />
+                    <button className="primary continue" disabled={Boolean(failure)} onClick={() => resume(state.normal!)}>Продолжить партию <span>→</span></button>
+                    <button className="primary secondary" disabled={Boolean(failure)} onClick={() => setModal({kind:"difficulty"})}>Новая игра</button>
+                  </> : <>
+                    <div className="welcome-illustration" aria-hidden="true"><BoardPreview /></div>
+                    <button className="primary" disabled={Boolean(failure)} onClick={() => setModal({kind:"difficulty"})}>Новая игра <span>→</span></button>
+                    <p className="footnote">900 задач · 3 уровня сложности</p>
+                  </>}
+                </section>
+                <section className="daily-panel">
+                  <div className="daily-heading"><span className="date-badge" aria-hidden="true"><small>{new Date().toLocaleDateString("ru",{month:"short"})}</small>{new Date().getDate()}</span><div><h2>Задача дня</h2><p>{new Date().toLocaleDateString("ru",{day:"numeric",month:"long"})}</p></div></div>
+                  <button className="primary secondary" onClick={() => daily(localDate())}>{state.daily[localDate()]?.completed ? "Результат за сегодня" : state.daily[localDate()] ? "Продолжить задачу дня" : "Играть сегодня"}</button>
+                  <button className="calendar-link" onClick={() => {setCalendarMonth(undefined);setPage("daily");}}>Календарь задач <span>→</span></button>
+                  <button className="home-medal" onClick={() => setPage("trophies")}>
+                    <Trophy tier={monthProgress(state.daily, localDate().slice(0,7)).tier} month={new Date().getMonth()+1} />
+                    <span><strong>Медаль месяца</strong><small>{monthProgress(state.daily, localDate().slice(0,7)).tier === 3 ? "Золото получено" : `До ${["бронзы","серебра","золота"][monthProgress(state.daily, localDate().slice(0,7)).tier]}: ${monthProgress(state.daily, localDate().slice(0,7)).target - monthProgress(state.daily, localDate().slice(0,7)).solved} задач`}</small><small>{monthProgress(state.daily, localDate().slice(0,7)).solved} из {monthProgress(state.daily, localDate().slice(0,7)).total} дней решено</small></span>
                   </button>
-                </div>
-              )}
-              <div className="new-game">
-                <h2>Новая игра</h2>
-                <div className="levels" role="group" aria-label="Сложность">
-                  {levels.map((l) => (
-                    <button
-                      key={l}
-                      aria-pressed={chosen === l}
-                      className={chosen === l ? "active" : ""}
-                      onClick={() => setChosen(l)}
-                    >
-                      {labels[l]}
-                    </button>
-                  ))}
-                </div>
-
-                <button
-                  className={`primary ${state.normal && !state.normal.completed ? "secondary" : ""}`}
-                  disabled={Boolean(failure)}
-                  onClick={() => requestNew(chosen)}
-                >
-                  Начать игру <span>→</span>
-                </button>
+                </section>
               </div>
-              <button
-                className="daily-card"
-                onClick={() => {
-                  setCalendarMonth(undefined);
-                  setPage("daily");
-                }}
-              >
-                <span className="date-badge" aria-hidden="true">
-                  <small>
-                    {new Date()
-                      .toLocaleDateString("ru", { month: "short" })
-                      .replace(".", "")}
-                  </small>
-                  {new Date().getDate()}
-                </span>
-                <span>
-                  <strong>Задача дня</strong>
-                  <small>
-                    {new Date().toLocaleDateString("ru", {
-                      day: "numeric",
-                      month: "long",
-                    })}{" "}
-                    ·{" "}
-                    {state.daily[localDate()]?.completed
-                      ? "Решено ✓"
-                      : state.daily[localDate()]
-                        ? "Продолжить"
-                        : "Новое поле каждый день"}
-                  </small>
-                </span>
-                <span>→</span>
-              </button>
               <nav className="home-links">
                 <button onClick={showTutorial}>Как играть</button>
                 <button onClick={() => setPage("stats")}>Статистика</button>
                 <button onClick={() => setPage("trophies")}>Трофеи</button>
                 <button onClick={showSettings}>Настройки</button>
               </nav>
-              <p className="footnote">900 задач · 3 уровня сложности</p>
             </section>
           )}
+
           {page === "play" && game && (
             <section className="play">
               <div className="game-heading">
+                {!completed && game.selected === null && <p className="start-instruction">{game.inputMode === "digit" ? "Выберите цифру, затем нажимайте пустые клетки" : "Выберите пустую клетку, затем цифру"}</p>}
                 <div>
                   <span className="eyebrow">
                     {game.dailyDate ? `${game.dailyDate} · ` : ""}
@@ -1309,7 +1261,7 @@ export default function Doku() {
               >
                 Конфиденциальность и данные →
               </button>
-              <p className="footnote">Версия 0.4 · Банк 1</p>
+              <p className="footnote">Версия 0.5 · Банк 1</p>
             </section>
           )}
           {page === "stats" && (
@@ -1369,6 +1321,7 @@ export default function Doku() {
               start={DAILY_START}
               open={daily}
               initialMonth={calendarMonth}
+              onMonthChange={setCalendarMonth}
               trophies={() => setPage("trophies")}
             />
           )}
@@ -1428,7 +1381,12 @@ export default function Doku() {
       {modal && (
         <ModalView close={() => setModal(null)}>
           <>
-            {modal.kind === "new" ? (
+            {modal.kind === "difficulty" ? (
+              <>
+                <h2>Выберите сложность</h2>
+                <div className="difficulty-list">{levels.map(level => <button key={level} onClick={() => requestNew(level)}>{labels[level]} <span>→</span></button>)}</div>
+              </>
+            ) : modal.kind === "new" ? (
               <>
                 <span className="eyebrow">НОВАЯ ПАРТИЯ</span>
                 <h2>
@@ -1587,7 +1545,7 @@ function ModalView({
         aria-label="Диалог игры"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
-          if (e.key === "Escape") close();
+          if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); }
           if (e.key === "Tab") {
             const els = ref.current!.querySelectorAll<HTMLElement>(
               "button:not(:disabled),a,input",
@@ -1669,4 +1627,15 @@ function HintView({
       )}
     </>
   );
+}
+
+function BoardPreview({game}: {game?: Game}) {
+  const cells = game ? board(game) : Array.from(puzzles[0].givens, Number);
+  return <div className="board-preview" aria-hidden="true">{Array.from(cells).map((digit, i) => <span key={i} className={`${i%9===2 || i%9===5 ? "block-right" : ""} ${Math.floor(i/9)===2 || Math.floor(i/9)===5 ? "block-bottom" : ""}`}>{digit || ""}</span>)}</div>;
+}
+function SessionProgress({game}: {game: Game}) {
+  const values = board(game), total = game.givens.filter(d => !d).length;
+  const filled = values.filter((d,i) => !game.givens[i] && d === game.solution[i]).length;
+  if (!filled) return null;
+  return <div className="session-progress"><progress value={filled} max={total} aria-label="Решено пустых клеток"/><small>{filled} из {total} пустых клеток решено</small></div>;
 }

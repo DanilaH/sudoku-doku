@@ -27,7 +27,7 @@ test("archive navigation, trophies and reduced motion", async ({ page }) => {
     page.getByRole("button", { name: "2025-01-01, начато", exact: true }),
   ).toBeVisible();
   await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.getByRole("button", { name: /Трофей месяца/ }).click();
+  await page.getByRole("button", { name: /Медаль месяца/ }).click();
   await expect(page.locator(".screen-content")).toHaveCSS(
     "animation-name",
     "screen-in",

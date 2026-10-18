@@ -11,7 +11,7 @@ test("digit-first notes, settings return, error scheme and daily isolation", asy
   const failures: string[] = [];
   page.on("pageerror", (e) => failures.push(e.message));
   await page.goto("/");
-  await page.getByRole("button", { name: "Начать игру" }).click();
+  await page.getByRole("button", { name: "Новая игра" }).click();await page.getByRole("button", {name:"Лёгкий",exact:true}).click();
   const c = puzzle.givens.indexOf("0");
   await page.getByLabel("Режим ввода", { exact: true }).click();
   await page
@@ -56,7 +56,7 @@ test("digit-first notes, settings return, error scheme and daily isolation", asy
     fullPage: true,
   });
   await page.getByRole("button", { name: "На главную", exact: true }).click();
-  await page.getByRole("button", { name: "Задача дня" }).click();
+  await page.getByRole("button", { name: "Календарь задач" }).click();
   await page.getByRole("button", { name: "Играть сегодня" }).click();
   const dailyCell = page.locator(".cell.entry").first();
   await dailyCell.click();
@@ -67,7 +67,7 @@ test("digit-first notes, settings return, error scheme and daily isolation", asy
   await page.getByRole("button", { name: "Продолжить партию" }).click();
   await expect(page.locator(`[data-cell="${c}"]`)).toHaveText(String(wrong));
   await page.getByRole("button", { name: "На главную", exact: true }).click();
-  await page.getByRole("button", { name: "Задача дня" }).click();
+  await page.getByRole("button", { name: "Календарь задач" }).click();
   await page.screenshot({
     path: "artifacts/daily-calendar.png",
     fullPage: true,
@@ -92,7 +92,7 @@ test("tutorial is interactive, skippable and replayable without a game", async (
     page.getByRole("button", { name: "Учебная пустая клетка" }),
   ).toHaveText("3");
   await page.getByRole("button", { name: "Пропустить обучение" }).click();
-  await expect(page.getByRole("button", { name: "Начать игру" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Новая игра" })).toBeVisible();
   await page.getByRole("button", { name: "Как играть", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Правило девяти" }),

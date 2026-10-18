@@ -6,13 +6,13 @@ test("all redesigned screens, dark notes and compact controls remain usable", as
   const failures: string[] = [];
   page.on("pageerror", (e) => failures.push(e.message));
   await page.goto("/");
-  await page.getByRole("button", { name: "Начать игру" }).waitFor();
+  await page.getByRole("button", { name: "Новая игра" }).waitFor();
   await page.waitForTimeout(200);
   await page.screenshot({
     path: "artifacts/redesign-home-light.png",
     fullPage: true,
   });
-  await page.getByRole("button", { name: "Начать игру" }).click();
+  await page.getByRole("button", { name: "Новая игра" }).click();await page.getByRole("button", {name:"Лёгкий",exact:true}).click();
   await page.locator(".cell.entry").first().click();
   await page.getByRole("button", { name: "Заметки", exact: true }).click();
   await page.getByRole("button", { name: "Ввести 2", exact: true }).click();
@@ -90,7 +90,7 @@ test("all redesigned screens, dark notes and compact controls remain usable", as
     fullPage: true,
   });
   await page.getByRole("button", { name: "На главную", exact: true }).click();
-  await page.getByRole("button", { name: "Задача дня" }).click();
+  await page.getByRole("button", { name: "Календарь задач" }).click();
   await page.waitForTimeout(200);
   await page.screenshot({
     path: "artifacts/redesign-calendar-dark.png",

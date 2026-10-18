@@ -18,8 +18,8 @@ android {
         applicationId "ru.danilah.sudokudoku"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 7
-        versionName "0.7.0"
+        versionCode 8
+        versionName "0.8.0"
         buildConfigField "boolean", "ADS_ENABLED", "true"
         buildConfigField "boolean", "FORCE_NO_FILL", "false"
         buildConfigField "String", "BANNER_ID", "\"${project.findProperty('bannerId') ?: ''}\""
@@ -32,6 +32,7 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    testBuildType project.hasProperty('releaseSmoke') ? 'releaseSmoke' : 'debug'
     buildFeatures { buildConfig true }
     buildTypes {
         debug {
@@ -44,8 +45,18 @@ android {
             buildConfigField "String", "APPMETRICA_KEY", '""'
         }
         release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        releaseSmoke {
+            initWith release
+            signingConfig signingConfigs.preview
+            applicationIdSuffix ".releasecheck"
+            matchingFallbacks = ['release']
+            buildConfigField "String", "BANNER_ID", '\"demo-banner-yandex\"'
+            buildConfigField "String", "INTERSTITIAL_ID", '\"demo-interstitial-yandex\"'
+            buildConfigField "String", "APPMETRICA_KEY", '\"\"'
         }
     }
 }

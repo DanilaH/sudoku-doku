@@ -19,3 +19,7 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# ActivityScenario and the JS bridge must also work in the minified smoke build.
+-keep class ru.danilah.sudokudoku.MainActivity { *; }
+-keepattributes SourceFile,LineNumberTable

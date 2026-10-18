@@ -1,4 +1,4 @@
-import { puzzles } from './bank';
+import { legacyPuzzles } from './bank';
 import dailyRaw from '../../bank/daily-v2.jsonl?raw';
 import { newGame, validDate, type State, type PuzzleRef } from './game';
 export const DAILY_START='2025-01-01';
@@ -12,7 +12,7 @@ export function dailyPuzzle(date:string){
  if(date>=DAILY_V2_START)return dailyBank[Math.floor((Date.parse(date)-Date.parse(DAILY_V2_START))/86400000)];
  // Published archive stays immutable. Saved future sessions also win in openDaily.
  const elapsed=Math.floor((Date.parse(date)-Date.parse('2026-01-01'))/86400000),day=((elapsed%900)+900)%900;
- const level=(['EASY','MEDIUM','HARD'] as const)[day%3];return puzzles.filter(p=>p.difficulty===level)[Math.floor(day/3)];
+ const level=(['EASY','MEDIUM','HARD'] as const)[day%3];return legacyPuzzles.filter(p=>p.difficulty===level)[Math.floor(day/3)];
 }
 export function openDaily(s:State,date:string,today=localDate()){
  if(!validDate(date)||date>today||date<DAILY_START)throw Error('Daily unavailable');

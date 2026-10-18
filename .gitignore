@@ -13,3 +13,5 @@ artifacts/
 *.jks
 *.keystore
 bank/daily-checkpoint.json
+
+bank/expansion-checkpoint.json

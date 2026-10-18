@@ -24,8 +24,8 @@ it("migrates v1 without losing moves, notes, results or custom settings", () => 
   v1.settings = { theme: "dark", conflicts: true, keepAwake: true };
   const s = validateState(v1);
   expect(s.version).toBe(2);
-  expect(s.normal).toEqual(g);
-  expect(s.current).toEqual(g);
+  expect(s.normal).toMatchObject(g);
+  expect(s.current).toMatchObject(g);
   expect(s.settings).toMatchObject({
     theme: "dark",
     conflicts: true,
@@ -110,10 +110,10 @@ it("normal and dated slots survive switches, reloads and daily completion only o
   s = withGame(s, g);
   s = withGame(s, normal);
   s = validateState(JSON.parse(JSON.stringify(s)));
-  expect(s.normal).toEqual(normal);
+  expect(s.normal).toMatchObject(normal);
   expect(s.daily["2026-10-15"].completed).toBe(true);
   s = withGame(s, openDaily(s, "2026-10-15", "2026-10-15"));
   expect(s.results).toHaveLength(1);
   expect(s.results[0].dailyDate).toBe("2026-10-15");
-  expect(s.normal).toEqual(normal);
+  expect(s.normal).toMatchObject(normal);
 });

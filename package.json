@@ -1,6 +1,6 @@
 {
   "name": "sudoku-doku",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,8 +8,9 @@
     "build": "tsc --noEmit && vite build",
     "build:yandex": "tsc --noEmit && vite build --mode yandex",
     "test": "vitest run",
-    "verify:bank": "node --import tsx tools/verify-bank.ts && python3 tools/validate-bank.py && node --import tsx tools/verify-daily.ts && python3 tools/validate-daily.py",
-    "android:sync": "npm run build && cap sync android"
+    "verify:bank": "node --import tsx tools/verify-bank.ts && python3 tools/validate-bank.py && node --import tsx tools/verify-daily.ts && python3 tools/validate-daily.py && node --import tsx tools/verify-expansion.ts && python3 tools/validate-expansion.py",
+    "android:sync": "npm run build:rustore && cap sync android",
+    "build:rustore": "tsc --noEmit && vite build --mode rustore"
   },
   "dependencies": {
     "react": "19.3.1",

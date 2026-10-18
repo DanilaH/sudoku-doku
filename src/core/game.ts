@@ -1,3 +1,4 @@
+import {activityOf,legacyActivity,activityTotals,type Activity} from './activity';
 import {
   bit,
   hint,
@@ -26,6 +27,7 @@ export interface Move {
   changes: CellChange[];
 }
 export interface Game {
+  updatedAt?: number;
   dailyDate?: string;
   inputMode?: "cell" | "digit";
   activeDigit?: number | null;
@@ -74,6 +76,9 @@ export interface AdCaps {
   firstCompleted: boolean;
 }
 export interface State {
+  profile?: {name:string;updatedAt:number};
+  activity?: Activity;
+  legacyActivity?: Record<Difficulty,number>;
   activeByLevel?: Record<Difficulty, number>;
   version: 2;
   revision: number;
@@ -245,14 +250,10 @@ export function applyHint(g: Game, steps: Step[], autoNotes = false): Game {
 }
 /** Current game and result live in one snapshot, persisted by a single atomic write. */
 export function withGame(state: State, g: Game, now = Date.now()): State {
-  const activeByLevel = state.activeByLevel ? {...state.activeByLevel} : Object.fromEntries(
-    (["EASY","MEDIUM","HARD"] as Difficulty[]).map(level => [level,
-      state.results.filter(r=>r.difficulty===level).reduce((n,r)=>n+r.activeMs,0) +
-      [state.normal,...Object.values(state.daily)].reduce((n,slot)=>n+(slot&&!slot.completed&&slot.difficulty===level?slot.activeMs:0),0)
-    ])) as Record<Difficulty,number>;
-  const previous = g.dailyDate ? state.daily[g.dailyDate] : state.normal;
-  const baseline = previous?.id === g.id ? previous.activeMs : state.results.find(r=>r.gameId===g.id)?.activeMs ?? 0;
-  activeByLevel[g.difficulty] += Math.max(0,g.activeMs-baseline);
+  const activity=activityOf(state), legacy=legacyActivity(state,activity);
+  activity[g.id]={level:g.difficulty,ms:Math.max(activity[g.id]?.ms??0,g.activeMs)};
+  const activeByLevel=activityTotals(activity,legacy);
+  g={...g,updatedAt:now};
   const results = [...state.results];
   if (g.completed && !results.some((r) => r.gameId === g.id))
     results.push({
@@ -270,6 +271,8 @@ export function withGame(state: State, g: Game, now = Date.now()): State {
     revision: state.revision + 1,
     current: g,
     activeByLevel,
+    activity,
+    legacyActivity:legacy,
     normal: g.dailyDate ? state.normal : g,
     daily: g.dailyDate ? { ...state.daily, [g.dailyDate]: g } : state.daily,
     results,
@@ -324,6 +327,7 @@ export function validateState(value: unknown): State {
     !("normal" in s)
   )
     throw Error("Corrupt settings");
+  const levelsForValidation=["EASY","MEDIUM","HARD"] as Difficulty[];
   const okNumber = (n: unknown) =>
     typeof n === "number" && Number.isFinite(n) && n >= 0;
   if (
@@ -345,6 +349,9 @@ export function validateState(value: unknown): State {
     throw Error("Unsupported or corrupt save");
   if (s.activeByLevel !== undefined && (!s.activeByLevel ||
     (["EASY","MEDIUM","HARD"] as Difficulty[]).some(l=>!okNumber(s.activeByLevel![l])))) throw Error("Corrupt activity totals");
+  if(s.profile && (typeof s.profile.name!=='string'||s.profile.name.length>32||!okNumber(s.profile.updatedAt)))throw Error('Corrupt profile');
+  if(s.legacyActivity && levelsForValidation.some(l=>!okNumber(s.legacyActivity![l])))throw Error('Corrupt activity');
+  if(s.activity && Object.values(s.activity).some(v=>!v||!levelsForValidation.includes(v.level)||!okNumber(v.ms)))throw Error('Corrupt activity');
   const ids = new Set<string>();
   for (const r of s.results) {
     if (

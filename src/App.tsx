@@ -29,14 +29,11 @@ import {
 } from "./core/game";
 import { ActiveClock } from "./core/time";
 import { adEligibility, impression } from "./core/ads";
-import { SaveQueue, defaultStorage, yandexStorage } from "./platform/storage";
-import { initYandex, yandex } from "./platform/yandex";
+import { SaveQueue } from "./platform/storage";
 import {
   event,
   keepAwake,
   nativeLifecycle,
-  prepareAd,
-  showAd,
 } from "./platform";
 import { Native, isAndroid } from "./platform/native";
 import { DAILY_START, DAILY_END, dailyPuzzle, nextDaily, openDaily } from "./core/daily";
@@ -47,6 +44,10 @@ import { Calendar, Tutorial, ErrorBoard } from "./components/Extras";
 import { bankProgress } from "./core/progress";
 import { Statistics } from "./components/Statistics";
 import { useToday, useTouchUI } from "./components/useDevice";
+import {platform} from './platform/adapter';
+import {ProfileStorage,fetchProfile,pushProfile} from './platform/accounts';
+import {mergeProfiles} from './core/profile';
+import {Profile} from './components/Profile';
 import "./style.css";
 const labels: Record<Difficulty, string> = {
   EASY: "Лёгкий",
@@ -70,6 +71,7 @@ type Page =
   | "home"
   | "play"
   | "settings"
+  | "profile"
   | "stats"
   | "privacy"
   | "daily"
@@ -83,6 +85,7 @@ type Modal =
   | null;
 function Glyph({ name }: { name: string }) {
   const paths: Record<string, ReactNode> = {
+    calendar: <path d="M4 6h16v15H4zM8 3v6M16 3v6M4 11h16M8 15h2M14 15h2" />,
     back: <path d="m14 5-7 7 7 7" />,
     pause: (
       <>
@@ -149,6 +152,9 @@ export default function Doku() {
     [failure, setFailure] = useState(""),
     [bootFailure, setBootFailure] = useState(false),
     [saving, setSaving] = useState(false);
+  const profileStore=useRef<ProfileStorage|null>(null);
+  const [profileBusy,setProfileBusy]=useState(false),[syncMessage,setSyncMessage]=useState(''),[accountId,setAccountId]=useState<string|null>(null);
+  const profileLock=useRef(false);
   const [calendarMonth, setCalendarMonth] = useState<string | undefined>();
   const [page, setPage] = useState<Page>("home"),
     [modal, setModal] = useState<Modal>(null),
@@ -194,7 +200,7 @@ export default function Doku() {
     !platformPause &&
     !modal &&
     !adBusy &&
-    !failure;
+    !failure && !profileBusy;
   function persist(next: State) {
     sref.current = next;
     setState(next);
@@ -212,6 +218,38 @@ export default function Doku() {
     });
     return p;
   }
+  async function profileAction(action:'connect'|'sync'|'disconnect') {
+    if(profileLock.current||!profileStore.current||!queue.current)return;
+    profileLock.current=true;setProfileBusy(true);setSyncMessage('');
+    try {
+      await queue.current.flush();
+      let next:State;
+      if(action==='disconnect')next=await profileStore.current.disconnect();
+      else {
+        const account=await platform.accounts.account(action==='connect');
+        if(!account)throw Error('Вход не выполнен. Можно продолжать играть без аккаунта.');
+        if(action==='sync'&&account.id!==profileStore.current.accountId)throw Error('Аккаунт изменился. Подключите нужный профиль. Текущий прогресс сохранён отдельно.');
+        const remote=await fetchProfile(platform.accounts,account.id);
+        if(action==='connect')next=await profileStore.current.connect(account.id,remote,account.name);
+        else {next=remote?mergeProfiles(sref.current,remote):sref.current;await profileStore.current.write(JSON.stringify(next))}
+        // Commit locally before upload: a network failure must not erase a successful merge.
+      }
+      queue.current=new SaveQueue(profileStore.current);await queue.current.load();
+      sref.current=next;setState(next);setAccountId(profileStore.current.accountId);
+      if(action!=='disconnect'){
+        await pushProfile(platform.accounts,profileStore.current.accountId!,next);
+        setSyncMessage('Сохранено в облаке');
+      }else setSyncMessage('Гостевой режим. Прогресс аккаунта сохранён отдельно.');
+    } catch(e){setSyncMessage(e instanceof Error&&/[А-Яа-яЁё]/.test(e.message)?e.message:'Облако недоступно. Прогресс сохранён на устройстве. Попробуйте ещё раз.')}
+    finally {profileLock.current=false;setProfileBusy(false)}
+  }
+  useEffect(()=>{
+    if(!loaded||!accountId||page==='play')return;
+    const sync=()=>{if(document.visibilityState==='visible')void profileAction('sync')};
+    const first=page==='home'?setTimeout(sync,1500):undefined;
+    const timer=setInterval(sync,60000);const online=()=>sync();window.addEventListener('online',online);
+    return()=>{clearTimeout(first);clearInterval(timer);window.removeEventListener('online',online)};
+  },[loaded,accountId,page]);
   function gameAction(fn: (g: Game) => Game) {
     if (failure || adBusy) return;
     const prev = sref.current.current;
@@ -297,20 +335,20 @@ export default function Doku() {
               },
             );
           });
-        if (import.meta.env.MODE === "yandex") await initYandex();
-        queue.current = new SaveQueue(
-          import.meta.env.MODE === "yandex" ? yandexStorage : defaultStorage(),
-        );
+        await platform.init();
+        profileStore.current=new ProfileStorage(platform.storage());
+        queue.current = new SaveQueue(profileStore.current);
         const saved = await queue.current.load();
         if (dead) return;
+        setAccountId(profileStore.current.accountId);
         if (saved) {
           sref.current = saved;
           setState(saved);
         }
         for (const p of puzzles) checkPuzzle(p);
         setLoaded(true);
-        yandex.ready();
-        void prepareAd();
+        platform.ready();
+        void platform.ads.prepare();
       } catch (e) {
         if (!dead) {
           setFailure(
@@ -367,7 +405,7 @@ export default function Doku() {
           hints: g.hints,
         });
     }
-    yandex.gameplay(running);
+    platform.gameplay(running);
     void keepAwake(running && state.settings.keepAwake).catch(() => {});
   }, [running, game?.id, state.settings.keepAwake]);
   useEffect(() => {
@@ -408,7 +446,7 @@ export default function Doku() {
       },
       () => backRef.current(),
     );
-    const unYG = yandex.listen(
+    const unYG = platform.listen(
       () => setPlatformPause(true),
       () => setPlatformPause(false),
     );
@@ -467,8 +505,7 @@ export default function Doku() {
         Boolean(r) &&
         r!.bottom <= window.innerHeight &&
         r!.top >= 0;
-      if (isAndroid())
-        void Native.banner({
+      void platform.ads.banner({
           visible,
           top: r?.top ?? 0,
           viewportWidth: window.innerWidth,
@@ -477,12 +514,9 @@ export default function Doku() {
           bottom: window.innerHeight - (r?.bottom ?? 0),
           left: r?.left ?? 0,
         }).catch(() => {});
-      else if (import.meta.env.MODE === "yandex")
-        void yandex.banner(visible).catch(() => {});
+
     };
-    const readyListener = isAndroid()
-      ? Native.addListener("adsReady", update)
-      : null;
+    const readyListener = platform.ads.listenReady(update);
     update();
     window.addEventListener("resize", update);
     window.addEventListener("scroll", update);
@@ -493,8 +527,7 @@ export default function Doku() {
       ro.disconnect();
       window.removeEventListener("resize", update);
       window.removeEventListener("scroll", update);
-      if (isAndroid())
-        void Native.banner({
+      void platform.ads.banner({
           visible: false,
           top: 0,
           viewportWidth: window.innerWidth,
@@ -503,11 +536,11 @@ export default function Doku() {
           bottom: 0,
           left: 0,
         }).catch(() => {});
-      else void yandex.banner(false).catch(() => {});
+
     };
   }, [running, page]);
   function back() {
-    if (adBusy) return;
+    if (adBusy || profileBusy) return;
     if (modal) {
       setModal(null);
       return;
@@ -616,7 +649,7 @@ export default function Doku() {
         reason,
       });
       if (reason === "eligible")
-        await showAd(() => {
+        await platform.ads.show(() => {
           lastMono.current = performance.now();
           void persist({
             ...sref.current,
@@ -697,7 +730,7 @@ export default function Doku() {
         )
           playSound("mode");
       }}
-      className={`app page-${page} ${page === "play" ? "game-page" : ""} ${isAndroid() || import.meta.env.MODE === "yandex" ? "monetized" : ""} ${state.settings.largeDigits ? "large-digits" : ""}`}
+      className={`app page-${page} ${page === "play" ? "game-page" : ""} ${platform.adsAvailable ? "monetized" : ""} ${state.settings.largeDigits ? "large-digits" : ""}`}
     >
       <header className="top">
         <button
@@ -716,6 +749,7 @@ export default function Doku() {
           <Glyph name={page === "home" ? "settings" : "back"} />
         </button>
         <span className="wordmark">Судоку</span>
+        {page === "home" && <button className="home-profile" aria-label="Профиль" onClick={()=>setPage("profile")}>{state.profile?.name || "Профиль"}</button>}
         <span className="save-status" role="status" aria-live="off">
           {saving ? "Сохраняем…" : "Сохранено"}
         </span>
@@ -792,7 +826,7 @@ export default function Doku() {
                   <div className="bank-progress"><span>Решено {progress.solved} из {progress.total}</span><progress value={progress.solved} max={progress.total} aria-label="Прогресс обычных задач" /></div>
                 </section>
                 <section className="daily-panel">
-                  <div className="daily-heading"><div><h2>Задача дня</h2><p>{new Date(today+"T12:00:00").toLocaleDateString("ru",{day:"numeric",month:"long"})}{dailyAvailable ? ` · ${labels[(state.daily[today] ?? dailyPuzzle(today)).difficulty]}` : ""}</p></div><button className="calendar-link" onClick={() => {setCalendarMonth(undefined);setPage("daily");}}>Календарь</button></div>
+                  <div className="daily-heading"><div><h2>Задача дня</h2><p>{new Date(today+"T12:00:00").toLocaleDateString("ru",{day:"numeric",month:"long"})}{dailyAvailable ? ` · ${labels[(state.daily[today] ?? dailyPuzzle(today)).difficulty]}` : ""}</p></div><button className="calendar-link" onClick={() => {setCalendarMonth(undefined);setPage("daily");}}><Glyph name="calendar" />Календарь</button></div>
                   <button className="primary secondary" disabled={!dailyAvailable} onClick={() => daily(today)}>{!dailyAvailable ? "Нужен новый банк задач" : state.daily[today]?.completed ? "Решено ✓" : state.daily[today] ? "Продолжить задачу дня" : "Играть сегодня"}</button>
                   <button className="home-medal" onClick={() => setPage("trophies")}>
                     <Trophy tier={reward.tier} month={Number(today.slice(5,7))} />
@@ -1155,7 +1189,7 @@ export default function Doku() {
                   )}
                 </div>
               </div>
-              {(isAndroid() || import.meta.env.MODE === "yandex") &&
+              {(platform.adsAvailable) &&
                 !completed && (
                   <div
                     ref={banner}
@@ -1275,9 +1309,12 @@ export default function Doku() {
               >
                 Конфиденциальность и данные →
               </button>
-              <p className="footnote">Версия 0.6 · Банк 1 · Ежедневные 2</p>
+              <p className="footnote">Версия 0.7 · Банк 2 · Ежедневные 2</p>
             </section>
           )}
+          {page === "profile" && <Profile key={`${accountId}:${state.profile?.updatedAt}`} state={state} accountId={accountId} available={platform.accounts.available} busy={profileBusy} message={syncMessage}
+            rename={name=>{void persist({...sref.current,revision:sref.current.revision+1,profile:{name,updatedAt:Date.now()}})}}
+            connect={()=>void profileAction('connect')} sync={()=>void profileAction('sync')} disconnect={()=>void profileAction('disconnect')} trophies={()=>setPage('trophies')} />}
           {page === "stats" && <Statistics state={state} />}
           {page === "daily" && (
             <Calendar
@@ -1308,7 +1345,7 @@ export default function Doku() {
               <p>
                 Партия, заметки, настройки и статистика сохраняются на
                 устройстве. Удаление приложения или данных браузера может
-                удалить прогресс.
+                удалить прогресс. По вашему желанию профиль и игровой прогресс также сохраняются в облаке выбранной платформы. Отключение облака не удаляет ранее отправленные данные.
               </p>
               <p>
                 Обычная веб-версия не отправляет игровую аналитику и не
@@ -1479,9 +1516,9 @@ export default function Doku() {
           </>
         </ModalView>
       )}
-      {adBusy && (
+      {(adBusy || profileBusy) && (
         <div className="transition" role="status">
-          Переходим…
+          {profileBusy ? "Синхронизация…" : "Переходим…"}
         </div>
       )}
     </main>

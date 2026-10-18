@@ -3,6 +3,7 @@ from pathlib import Path
 spec=importlib.util.spec_from_file_location("validator",Path(__file__).with_name("validate-bank.py"));v=importlib.util.module_from_spec(spec);spec.loader.exec_module(v)
 root=Path(__file__).resolve().parents[1];start=time.monotonic()
 normal=[json.loads(l) for l in (root/'bank/puzzles-v1.jsonl').read_text().splitlines()]
+normal += [json.loads(l) for l in (root/'bank/puzzles-v2-extra.jsonl').read_text().splitlines()]
 seen={v.canonical(p['givens']) for p in normal};counts={}
 rows=[json.loads(l) for l in (root/'bank/daily-v2.jsonl').read_text().splitlines()]
 for p in rows:

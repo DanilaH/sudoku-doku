@@ -9,7 +9,7 @@ it('daily bank is separate and dates never wrap; existing saves win',()=>{
  expect(dailyBank.some(p=>ordinary.has(p.givens))).toBe(false);
  expect(dailyPuzzle('2028-06-20')).not.toEqual(dailyPuzzle('2026-01-02'));
  expect(()=>dailyPuzzle('2099-01-01')).toThrow();expect(dailyPuzzle(DAILY_END)).toBeDefined();
- let s=initialState();const old={...newGame(puzzles[0]),dailyDate:'2028-06-20'};s=withGame(s,old);expect(openDaily(validateState(s),'2028-06-20','2028-06-20')).toEqual(old);
+ let s=initialState();const old={...newGame(puzzles[0]),dailyDate:'2028-06-20'};s=withGame(s,old);expect(openDaily(validateState(s),'2028-06-20','2028-06-20')).toMatchObject(old);
 });
 it('progress counts unique ordinary puzzles; activity includes replaced games',()=>{
  let s=initialState();let a={...newGame(puzzles[0]),activeMs:12000};s=withGame(s,a);s=withGame(s,a);expect(statistics(s).activeMs).toBe(12000);

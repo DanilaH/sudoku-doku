@@ -59,8 +59,6 @@ android {
             buildConfigField "String", "INTERSTITIAL_ID", '\"demo-interstitial-yandex\"'
             buildConfigField "String", "APPMETRICA_KEY", '\"\"'
         }
-        if (project.findProperty('bannerId') == project.findProperty('interstitialId'))
-            throw new GradleException('Banner and interstitial must use separate ad units')
     }
 }
 

@@ -39,5 +39,5 @@ test('slow automatic cloud read never blocks starting a game or replaces active 
  await page.route('**/sdk.js',r=>r.fulfill({contentType:'application/javascript',body:`window.user='a';window.authCalls=0;window.cloud={};${delayed}`}));
  await page.goto('/');await page.getByRole('button',{name:'Профиль',exact:true}).click();await page.getByRole('button',{name:'Подключить облачное сохранение'}).click();await expect(page.locator('.profile-status')).toHaveText('Сохранено в облаке');
  await page.evaluate(()=>(window as any).slowCloud=true);await page.getByRole('button',{name:'На главную',exact:true}).click();await page.waitForTimeout(1800);
- await page.getByRole('button',{name:'Новая игра',exact:true}).click();await page.getByRole('button',{name:'Лёгкий',exact:true}).click();await expect(page.locator('.board')).toBeVisible();await page.waitForTimeout(4000);await expect(page.locator('.board')).toBeVisible();await expect(page.locator('.pause-cover')).toHaveCount(0);
+ await page.getByRole('button',{name:'Новая игра'}).click();await page.getByRole('button',{name:'Лёгкий',exact:true}).click();await expect(page.locator('.board')).toBeVisible();await page.waitForTimeout(4000);await expect(page.locator('.board')).toBeVisible();await expect(page.locator('.pause-cover')).toHaveCount(0);
 });

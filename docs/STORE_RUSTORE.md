@@ -47,5 +47,8 @@
 - Owner also confirmed repository secrets `YANDEX_BANNER_ID` and `YANDEX_INTERSTITIAL_ID`
   have been created; their values have not been independently verified.
 - Support contact confirmed by the owner: `hityov.danila@yandex.ru`.
-- Pending: wiring the production ad secrets into the release build, private release signing
-  configuration and final privacy-policy URL. No store release has been built or published.
+- Production ad secrets are wired into the release workflow. Candidate inspection found the same
+  eight-digit numeric value in both; replace them with distinct full `R-M-PAGE_ID-INDEX` ad unit IDs.
+- Private production signing key has been generated outside the repository.
+- Pending: corrected ad unit secrets, verified signed release and final privacy-policy URL.
+  No store release has been published. See `RELEASE_08.md`.

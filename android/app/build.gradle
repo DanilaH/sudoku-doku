@@ -59,6 +59,8 @@ android {
             buildConfigField "String", "INTERSTITIAL_ID", '\"demo-interstitial-yandex\"'
             buildConfigField "String", "APPMETRICA_KEY", '\"\"'
         }
+        if (project.findProperty('bannerId') == project.findProperty('interstitialId'))
+            throw new GradleException('Banner and interstitial must use separate ad units')
     }
 }
 
@@ -99,6 +101,12 @@ tasks.configureEach { t ->
         ['bannerId','interstitialId','appMetricaKey'].each { key ->
             def value = project.findProperty(key)?.toString()
             if (!value || value.startsWith('demo-')) throw new GradleException("Production ${key} is required")
+            if (key != 'appMetricaKey' && !(value ==~ /R-M-[0-9]{1,10}-[0-9]{1,7}/))
+                throw new GradleException("Production ${key} must be a full Yandex ad unit ID (R-M-PAGE_ID-INDEX), not an app ID")
+            if (key == 'appMetricaKey' && !(value ==~ /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/))
+                throw new GradleException("Production appMetricaKey must be a UUID")
         }
+        if (project.findProperty('bannerId') == project.findProperty('interstitialId'))
+            throw new GradleException('Banner and interstitial must use separate ad units')
     }
 }

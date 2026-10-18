@@ -43,7 +43,12 @@ jobs:
         with:
           gradle-version: '8.14.3'
       - run: npm ci && npm run android:sync
-      - run: gradle -p android :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
+      - name: Build and check Android
+        env:
+          # Gradle reads this as appMetricaKey; never pass the value on the command line.
+          # Debug overrides APPMETRICA_KEY with an empty string to keep tests out of production analytics.
+          ORG_GRADLE_PROJECT_appMetricaKey: ${{ secrets.APPMETRICA_KEY }}
+        run: gradle -p android :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
       - run: mkdir -p artifacts && cp android/app/build/outputs/apk/debug/app-debug.apk artifacts/sudoku-demo.apk
       - name: Enable KVM
         run: |

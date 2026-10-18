@@ -27,3 +27,16 @@
 - Capture Android screenshots on a real device. Browser screenshots in artifacts are UI evidence, not a substitute for store screenshots of the Android build.
 - Check every actual advertising and analytics declaration against the merged release manifest and SDK behavior.
 - Test final signed APK update over an older build with the same package/signature and saved progress.
+
+
+## Release setup (2026-10-18)
+
+- RuStore console application ID: `2063772052`.
+- Production package: `ru.danilah.sudokudoku` (not the preview `.debug` package).
+- Owner confirmed repository secret `APPMETRICA_KEY` has been created.
+- Android CI maps it to `ORG_GRADLE_PROJECT_appMetricaKey`; Gradle consumes the existing
+  `appMetricaKey` property. The secret value is never stored in source or passed in command arguments.
+- Preview builds intentionally override the key with an empty value. Actual SDK event delivery
+  is not verified until a production build is configured and tested.
+- Pending: production banner/interstitial IDs, private release signing configuration,
+  support contact and final privacy-policy URL. No store release has been built or published.

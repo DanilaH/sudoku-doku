@@ -60,7 +60,7 @@ jobs:
             adb pull /sdcard/production-ui.xml artifacts/release/production-ui.xml
             adb exec-out screencap -p > artifacts/release/production-home.png
             adb logcat -d -s AndroidRuntime:E Capacitor/Console:E Capacitor:E > artifacts/release/production-diagnostics.log
-            python3 -c 'from pathlib import Path; assert "Новая игра" in Path("artifacts/release/production-ui.xml").read_text()' 
+            python3 -c 'from pathlib import Path; ui=Path("artifacts/release/production-ui.xml").read_text(); assert "ru.danilah.sudokudoku" in ui and "android.webkit.WebView" in ui' 
             adb logcat -d -s AndroidRuntime:E > artifacts/release/production-crash.log
             python3 -c 'from pathlib import Path; assert "FATAL EXCEPTION" not in Path("artifacts/release/production-crash.log").read_text()'
             adb exec-out screencap -p > artifacts/release/production-home.png

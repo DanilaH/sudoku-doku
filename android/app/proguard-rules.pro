@@ -27,3 +27,6 @@
 # Capacitor discovers plugin metadata at runtime; R8 full mode must retain annotation types.
 -keepattributes RuntimeVisibleAnnotations,RuntimeInvisibleAnnotations,AnnotationDefault
 -keep @interface com.getcapacitor.** { *; }
+
+# Shared with AndroidJUnitRunner: preserve the tracing ABI used by instrumentation.
+-keep class androidx.tracing.** { *; }

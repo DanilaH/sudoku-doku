@@ -14,7 +14,7 @@ import static org.junit.Assert.*;
 
 @RunWith(AndroidJUnit4.class)
 public class OfflineGameTest {
- private android.webkit.WebView webView(MainActivity a){return a.findViewById(R.id.webview);}
+ private android.webkit.WebView webView(MainActivity a){return a.findViewById(com.getcapacitor.android.R.id.webview);}
  private void screenshot(String name)throws Exception{
   android.graphics.Bitmap bitmap=InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
   File path=new File(InstrumentationRegistry.getInstrumentation().getTargetContext().getExternalFilesDir(null),name);

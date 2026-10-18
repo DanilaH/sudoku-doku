@@ -14,6 +14,7 @@ import static org.junit.Assert.*;
 
 @RunWith(AndroidJUnit4.class)
 public class OfflineGameTest {
+ private android.webkit.WebView webView(MainActivity a){return a.findViewById(R.id.webview);}
  private void screenshot(String name)throws Exception{
   android.graphics.Bitmap bitmap=InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
   File path=new File(InstrumentationRegistry.getInstrumentation().getTargetContext().getExternalFilesDir(null),name);
@@ -22,13 +23,13 @@ public class OfflineGameTest {
  }
  private String evaluate(ActivityScenario<MainActivity> scenario,String js)throws Exception{
   CountDownLatch latch=new CountDownLatch(1);AtomicReference<String> result=new AtomicReference<>();
-  scenario.onActivity(a->a.getBridge().getWebView().evaluateJavascript(js,v->{result.set(v);latch.countDown();}));
+  scenario.onActivity(a->webView(a).evaluateJavascript(js,v->{result.set(v);latch.countDown();}));
   assertTrue("JS callback",latch.await(5,TimeUnit.SECONDS));return result.get();
  }
  private void tap(ActivityScenario<MainActivity> s,String selector)throws Exception{
   String encoded=evaluate(s,"(()=>{const r=document.querySelector('"+selector+"').getBoundingClientRect();return JSON.stringify([r.x+r.width/2,r.y+r.height/2,innerWidth])})()");
   String json=(String)new org.json.JSONTokener(encoded).nextValue();org.json.JSONArray point=new org.json.JSONArray(json);float[] screen=new float[2];
-  s.onActivity(a->{int[] loc=new int[2];a.getBridge().getWebView().getLocationOnScreen(loc);try{float scale=(float)(a.getBridge().getWebView().getWidth()/point.getDouble(2));screen[0]=loc[0]+(float)point.getDouble(0)*scale;screen[1]=loc[1]+(float)point.getDouble(1)*scale;}catch(Exception e){throw new RuntimeException(e);}});
+  s.onActivity(a->{int[] loc=new int[2];webView(a).getLocationOnScreen(loc);try{float scale=(float)(webView(a).getWidth()/point.getDouble(2));screen[0]=loc[0]+(float)point.getDouble(0)*scale;screen[1]=loc[1]+(float)point.getDouble(1)*scale;}catch(Exception e){throw new RuntimeException(e);}});
   long now=android.os.SystemClock.uptimeMillis();android.app.Instrumentation inst=InstrumentationRegistry.getInstrumentation();
   android.view.MotionEvent down=android.view.MotionEvent.obtain(now,now,android.view.MotionEvent.ACTION_DOWN,screen[0],screen[1],0),up=android.view.MotionEvent.obtain(now,now+50,android.view.MotionEvent.ACTION_UP,screen[0],screen[1],0);
   inst.sendPointerSync(down);inst.sendPointerSync(up);down.recycle();up.recycle();
@@ -44,7 +45,7 @@ public class OfflineGameTest {
   int cell;
   try(ActivityScenario<MainActivity>s=ActivityScenario.launch(MainActivity.class)){
    waitFor(s,"!!document.querySelector('.new-game .primary')");
-   s.onActivity(a->{int[] xy=new int[2];a.getBridge().getWebView().getLocationOnScreen(xy);androidx.core.view.WindowInsetsCompat insets=androidx.core.view.ViewCompat.getRootWindowInsets(a.getWindow().getDecorView());assertNotNull(insets);assertTrue("WebView below status bar",xy[1]>=insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars()).top);});
+   s.onActivity(a->{int[] xy=new int[2];webView(a).getLocationOnScreen(xy);android.view.WindowInsets insets=a.getWindow().getDecorView().getRootWindowInsets();assertNotNull(insets);assertTrue("WebView below status bar",xy[1]>=insets.getInsets(android.view.WindowInsets.Type.systemBars()).top);});
    assertEquals("true",evaluate(s,"document.documentElement.scrollHeight <= innerHeight"));
    screenshot("android-home-06.png");
    evaluate(s,"document.querySelector('.new-game .primary').click()");

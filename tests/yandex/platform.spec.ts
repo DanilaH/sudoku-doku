@@ -34,3 +34,10 @@ test('optional login, guest transfer, separate accounts, network failure and ano
  await page.getByRole('button',{name:'Играть как гость'}).click();await expect(page.getByText('Гость · сохранение на устройстве')).toBeVisible();await expect(page.locator('.stats-metrics dd').first()).toHaveText('0');
  const context=await browser.newContext(),other=await context.newPage();await other.route('**/sdk.js',r=>r.fulfill({contentType:'application/javascript',body:`window.user='a';window.authCalls=0;window.cloud={a:${JSON.stringify(cloud)}};${accountsSDK}`}));await other.goto('http://127.0.0.1:5180');await other.getByRole('button',{name:'Профиль',exact:true}).click();await other.getByRole('button',{name:'Подключить облачное сохранение'}).click();await expect(other.locator('.profile-status')).toHaveText('Сохранено в облаке');await expect(other.locator('.stats-metrics dd').first()).toHaveText('1');await context.close();
 });
+test('slow automatic cloud read never blocks starting a game or replaces active play',async({page})=>{
+ const delayed=accountsSDK.replace("getData:async()=>{", "getData:async()=>{if(window.slowCloud)await new Promise(r=>setTimeout(r,4000));");
+ await page.route('**/sdk.js',r=>r.fulfill({contentType:'application/javascript',body:`window.user='a';window.authCalls=0;window.cloud={};${delayed}`}));
+ await page.goto('/');await page.getByRole('button',{name:'Профиль',exact:true}).click();await page.getByRole('button',{name:'Подключить облачное сохранение'}).click();await expect(page.locator('.profile-status')).toHaveText('Сохранено в облаке');
+ await page.evaluate(()=>(window as any).slowCloud=true);await page.getByRole('button',{name:'На главную',exact:true}).click();await page.waitForTimeout(1800);
+ await page.getByRole('button',{name:'Новая игра',exact:true}).click();await page.getByRole('button',{name:'Лёгкий',exact:true}).click();await expect(page.locator('.board')).toBeVisible();await page.waitForTimeout(4000);await expect(page.locator('.board')).toBeVisible();await expect(page.locator('.pause-cover')).toHaveCount(0);
+});

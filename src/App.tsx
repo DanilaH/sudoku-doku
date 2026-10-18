@@ -163,6 +163,7 @@ export default function Doku() {
     [platformPause, setPlatformPause] = useState(false),
     [adBusy, setAdBusy] = useState(false),
     [clockMs, setClockMs] = useState(0);
+  const pageRef=useRef(page);pageRef.current=page;
   const clock = useRef(new ActiveClock()),
     clockGame = useRef<string | null>(null),
     lastMono = useRef<number | null>(null),
@@ -218,9 +219,9 @@ export default function Doku() {
     });
     return p;
   }
-  async function profileAction(action:'connect'|'sync'|'disconnect') {
+  async function profileAction(action:'connect'|'sync'|'disconnect',background=false) {
     if(profileLock.current||!profileStore.current||!queue.current)return;
-    profileLock.current=true;setProfileBusy(true);setSyncMessage('');
+    profileLock.current=true;if(!background)setProfileBusy(true);setSyncMessage('');
     try {
       await queue.current.flush();
       let next:State;
@@ -230,12 +231,16 @@ export default function Doku() {
         if(!account)throw Error('Вход не выполнен. Можно продолжать играть без аккаунта.');
         if(action==='sync'&&account.id!==profileStore.current.accountId)throw Error('Аккаунт изменился. Подключите нужный профиль. Текущий прогресс сохранён отдельно.');
         const remote=await fetchProfile(platform.accounts,account.id);
+        if(background&&pageRef.current==='play')return;
+        setProfileBusy(true);
+        await queue.current.flush();
         if(action==='connect')next=await profileStore.current.connect(account.id,remote,account.name);
         else {next=remote?mergeProfiles(sref.current,remote):sref.current;await profileStore.current.write(JSON.stringify(next))}
         // Commit locally before upload: a network failure must not erase a successful merge.
       }
       queue.current=new SaveQueue(profileStore.current);await queue.current.load();
       sref.current=next;setState(next);setAccountId(profileStore.current.accountId);
+      if(background)setProfileBusy(false);
       if(action!=='disconnect'){
         await pushProfile(platform.accounts,profileStore.current.accountId!,next);
         setSyncMessage('Сохранено в облаке');
@@ -245,7 +250,7 @@ export default function Doku() {
   }
   useEffect(()=>{
     if(!loaded||!accountId||page==='play')return;
-    const sync=()=>{if(document.visibilityState==='visible')void profileAction('sync')};
+    const sync=()=>{if(document.visibilityState==='visible')void profileAction('sync',true)};
     const first=page==='home'?setTimeout(sync,1500):undefined;
     const timer=setInterval(sync,60000);const online=()=>sync();window.addEventListener('online',online);
     return()=>{clearTimeout(first);clearInterval(timer);window.removeEventListener('online',online)};

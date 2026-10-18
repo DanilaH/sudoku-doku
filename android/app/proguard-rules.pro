@@ -30,3 +30,7 @@
 
 # Shared with AndroidJUnitRunner: preserve the tracing ABI used by instrumentation.
 -keep class androidx.tracing.** { *; }
+
+# Kotlin standard-library facades are shared by app and instrumentation APKs.
+# Keep their ABI: the test APK excludes classes packaged in the app before shrinking.
+-keep class kotlin.** { *; }

@@ -47,8 +47,8 @@
 - Owner also confirmed repository secrets `YANDEX_BANNER_ID` and `YANDEX_INTERSTITIAL_ID`
   have been created; their values have not been independently verified.
 - Support contact confirmed by the owner: `hityov.danila@yandex.ru`.
-- Production ad secrets are wired into the release workflow. Candidate inspection found the same
-  eight-digit numeric value in both; replace them with distinct full `R-M-PAGE_ID-INDEX` ad unit IDs.
+- Production ad secrets are wired into the release workflow. The owner corrected both ad IDs on 2026-10-19 (Asia/Yekaterinburg).
+  APK inspection confirmed two distinct full `R-M-PAGE_ID-INDEX` IDs and no demo IDs.
 - Private production signing key has been generated outside the repository.
-- Pending: corrected ad unit secrets, verified signed release and final privacy-policy URL.
+- Signed 0.8 APK verified; see `RELEASE_08.md`. Pending: final privacy-policy URL and live ad/analytics delivery check.
   No store release has been published. See `RELEASE_08.md`.

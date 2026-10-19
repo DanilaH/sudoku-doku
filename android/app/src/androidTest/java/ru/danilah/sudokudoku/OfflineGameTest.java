@@ -53,6 +53,20 @@ public class OfflineGameTest {
    s.onActivity(a->{int[] xy=new int[2];webView(a).getLocationOnScreen(xy);android.view.WindowInsets insets=a.getWindow().getDecorView().getRootWindowInsets();assertNotNull(insets);assertTrue("WebView below status bar",xy[1]>=insets.getInsets(android.view.WindowInsets.Type.systemBars()).top);});
    assertEquals("true",evaluate(s,"document.documentElement.scrollHeight <= innerHeight"));
    screenshot("android-home-06.png");
+   evaluate(s,"document.querySelector('.calendar-link').click()");
+   waitFor(s,"!!document.querySelector('.page-daily')");Thread.sleep(250);screenshot("store-calendar.png");
+   evaluate(s,"document.querySelector('.top button').click()");waitFor(s,"!!document.querySelector('.new-game')");
+   evaluate(s,"document.querySelector('.home-medal').click()");
+   waitFor(s,"!!document.querySelector('.trophy-grid')");Thread.sleep(250);screenshot("store-trophies.png");
+   evaluate(s,"document.querySelector('.top button').click()");waitFor(s,"!!document.querySelector('.new-game')");
+   evaluate(s,"Array.from(document.querySelectorAll('.home-links button')).find(b=>b.innerText==='Статистика').click()");
+   waitFor(s,"!!document.querySelector('.stats-metrics')");Thread.sleep(250);screenshot("store-statistics.png");
+   evaluate(s,"document.querySelector('.top button').click()");waitFor(s,"!!document.querySelector('.new-game')");
+   evaluate(s,"document.querySelector('.home-profile').click()");waitFor(s,"!!document.querySelector('.profile-page')");
+   assertEquals("true",evaluate(s,"document.body.innerText.includes('Локальный профиль') && !document.body.innerText.includes('пока недоступно') && !document.body.innerText.includes('Подключить облачное')"));
+   screenshot("store-profile.png");
+   evaluate(s,"document.querySelector('.top button').click()");waitFor(s,"!!document.querySelector('.new-game')");
+
    evaluate(s,"document.querySelector('.new-game .primary').click()");
    waitFor(s,"!!document.querySelector('.difficulty-list button')");
    evaluate(s,"document.querySelector('.difficulty-list button').click()");

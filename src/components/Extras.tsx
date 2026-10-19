@@ -5,6 +5,7 @@ export function Calendar({
   daily,
   today,
   start,
+  end,
   open,
   initialMonth,
   onMonthChange,
@@ -13,12 +14,15 @@ export function Calendar({
   daily: Record<string, Game>;
   today: string;
   start: string;
+  end: string;
   open: (date: string) => void;
   initialMonth?: string;
   onMonthChange?: (month: string) => void;
   trophies: () => void;
 }) {
-  const [month, setMonth] = useState(initialMonth ?? today.slice(0, 7));
+  const limit = today < start ? start : today > end ? end : today;
+  const available = today >= start && today <= end;
+  const [month, setMonth] = useState(initialMonth ?? limit.slice(0, 7));
   const progress = monthProgress(daily, month);
   const [year, m] = month.split("-").map(Number),
     days = new Date(year, m, 0).getDate(),
@@ -36,14 +40,15 @@ export function Calendar({
         Одно поле на дату. Обычная партия сохранится. Пропущенные дни можно
         решить позже.
       </p>
-      <button className="primary" onClick={() => open(today)}>
-        {daily[today]?.completed
+      <button className="primary" disabled={!available} onClick={() => open(today)}>
+        {!available ? "Задача на эту дату недоступна" : daily[today]?.completed
           ? "Посмотреть результат за сегодня"
           : daily[today]
             ? "Продолжить сегодняшнюю"
             : "Играть сегодня"}{" "}
         →
       </button>
+      {!available && <p role="status">{today < start ? "Архив начинается с января 2025 года. Проверьте дату устройства." : "Банк ежедневных задач закончился. Архив доступен; для новых дней потребуется обновление игры."}</p>}
       <div className="calendar-heading">
         <button
           aria-label="Предыдущий месяц"
@@ -60,7 +65,7 @@ export function Calendar({
         </h2>
         <button
           aria-label="Следующий месяц"
-          disabled={month >= today.slice(0, 7)}
+          disabled={month >= limit.slice(0, 7)}
           onClick={() => shift(1)}
         >
           →
@@ -90,7 +95,7 @@ export function Calendar({
           return (
             <button
               key={date}
-              disabled={date > today || date < start}
+              disabled={date > today || date < start || date > end}
               aria-label={`${date}${g?.completed ? ", решено" : g ? ", начато" : ""}`}
               aria-current={date === today ? "date" : undefined}
               onClick={() => open(date)}

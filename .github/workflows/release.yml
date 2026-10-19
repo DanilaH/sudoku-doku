@@ -1,5 +1,5 @@
 name: RuStore optimized release
-run-name: RuStore 0.10 audit fixes
+run-name: RuStore 0.11 audit fixes
 on:
   push:
     branches: [feature/playtest-07]
@@ -74,6 +74,8 @@ jobs:
             adb shell am force-stop ru.danilah.sudokudoku.releasecheck
             adb shell am instrument -w -e class ru.danilah.sudokudoku.OfflineGameTest#processDeathRestoresRedoHistory ru.danilah.sudokudoku.releasecheck.test/androidx.test.runner.AndroidJUnitRunner | tee artifacts/release/restore.log
             python3 -c 'from pathlib import Path; assert "OK (1 test)" in Path("artifacts/release/restore.log").read_text()'
+            adb shell am instrument -w -e class ru.danilah.sudokudoku.OfflineGameTest#systemBackReturnsHomeAndExits ru.danilah.sudokudoku.releasecheck.test/androidx.test.runner.AndroidJUnitRunner | tee artifacts/release/back.log
+            python3 -c 'from pathlib import Path; assert "OK (1 test)" in Path("artifacts/release/back.log").read_text()'
             adb pull /sdcard/Android/data/ru.danilah.sudokudoku.releasecheck/files artifacts/release/screenshots
 
       - uses: actions/upload-artifact@v4

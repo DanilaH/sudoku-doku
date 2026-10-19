@@ -25,7 +25,7 @@ export function mergeProfiles(local:State,remote:State):State {
  }
  let normal=pick(a.normal,b.normal);
  const completedNormal=normal&&[...results.values()].find(r=>r.gameId===normal!.id);
- if(normal&&!normal.completed&&completedNormal)normal={...normal,completed:true,entries:normal.givens.map((d,i)=>d?0:normal!.solution[i]),undo:[],redo:[],activeMs:completedNormal.activeMs,hints:completedNormal.hints};
+ if(normal&&!normal.completed&&completedNormal)normal={...normal,completed:true,notes:Array(81).fill(0),entries:normal.givens.map((d,i)=>d?0:normal!.solution[i]),undo:[],redo:[],activeMs:completedNormal.activeMs,hints:completedNormal.hints};
  const current=a.current?(a.current.dailyDate?daily[a.current.dailyDate]:normal):b.current?(b.current.dailyDate?daily[b.current.dailyDate]:normal):null;
  return validateState({...a,profile:a.profile?.updatedAt&&a.profile.updatedAt>=(b.profile?.updatedAt??0)?a.profile:b.profile??a.profile,
   revision:Math.max(a.revision,b.revision)+1,normal,current,daily,results:[...results.values()],activity,legacyActivity:legacy,activeByLevel:activityTotals(activity,legacy)});

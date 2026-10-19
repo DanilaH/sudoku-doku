@@ -1,3 +1,4 @@
+import {version as appVersion} from '../package.json';
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { App as CapacitorApp } from "@capacitor/app";
 import { puzzles, checkPuzzle } from "./core/bank";
@@ -211,7 +212,7 @@ export default function Doku() {
     setState(next);
     pending.current++;
     setSaving(true);
-    const p = queue.current!.save(next);
+    const p = queue.current!.saveLocal(next);
     p.catch((e) => {
       setFailure(
         "Не удалось сохранить партию. Последнее подтверждённое сохранение осталось на устройстве.",
@@ -294,6 +295,17 @@ export default function Doku() {
       )
         playSound("mode");
       else if (next.selected !== prev.selected) playSound("select");
+    }
+    // Selection and input preferences are UI state. The next move/checkpoint saves them.
+    if (next.entries === prev.entries && next.notes === prev.notes &&
+        next.undo === prev.undo && next.redo === prev.redo &&
+        next.completed === prev.completed && next.hints === prev.hints) {
+      const current = sref.current;
+      const updated = {...current, current:next,
+        normal:next.dailyDate ? current.normal : next,
+        daily:next.dailyDate ? {...current.daily,[next.dailyDate]:next} : current.daily};
+      sref.current=updated;setState(updated);setClockMs(next.activeMs);
+      return;
     }
     void persist(withGame(sref.current, next))
       .then(() => {
@@ -690,6 +702,7 @@ export default function Doku() {
     setPage("play");
   }
   function daily(date: string) {
+    if (date < DAILY_START || date > DAILY_END || date > today) return;
     setCalendarMonth(date.slice(0, 7));
     resume(openDaily(sref.current, date));
   }
@@ -752,7 +765,7 @@ export default function Doku() {
               ? "Настройки"
               : (page === "settings" && settingsOrigin.current === "play") ||
                   page === "tutorial" ||
-                  page === "privacy"
+                  page === "privacy" || page === "trophies"
                 ? "Назад"
                 : "На главную"
           }
@@ -798,7 +811,7 @@ export default function Doku() {
                 return;
               }
               void queue
-                .current!.save(sref.current)
+                .current!.saveLocal(sref.current)
                 .then(() => setFailure(""))
                 .catch(() => {});
             }}
@@ -1321,7 +1334,7 @@ export default function Doku() {
               >
                 Конфиденциальность и данные →
               </button>
-              <p className="footnote">Версия 0.7 · Банк 2 · Ежедневные 2</p>
+              <p className="footnote">Версия {appVersion} · Банк 2 · Ежедневные 2</p>
             </section>
           )}
           {page === "profile" && <Profile key={`${accountId}:${state.profile?.updatedAt}`} state={state} accountId={accountId} available={platform.accounts.available} busy={profileBusy} message={syncMessage}
@@ -1331,7 +1344,8 @@ export default function Doku() {
           {page === "daily" && (
             <Calendar
               daily={state.daily}
-              today={today < DAILY_END ? today : DAILY_END}
+              today={today}
+              end={DAILY_END}
               start={DAILY_START}
               open={daily}
               initialMonth={calendarMonth}

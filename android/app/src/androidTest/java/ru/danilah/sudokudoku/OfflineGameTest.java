@@ -47,6 +47,19 @@ public class OfflineGameTest {
   while(System.nanoTime()<end){if("true".equals(evaluate(s,condition)))return;Thread.sleep(100);}
   fail("Condition timed out: "+condition+"; page="+evaluate(s,"document.body.innerText"));
  }
+ @Test public void systemBackReturnsHomeAndExits()throws Exception{
+  try(ActivityScenario<MainActivity>s=ActivityScenario.launch(MainActivity.class)){
+   waitFor(s,"!!document.querySelector('.new-game')");
+   evaluate(s,"document.querySelector('.calendar-link').click()");
+   waitFor(s,"!!document.querySelector('.calendar')");
+   InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK);
+   waitFor(s,"!!document.querySelector('.new-game')");
+   AtomicReference<MainActivity> activity=new AtomicReference<>();s.onActivity(activity::set);
+   InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK);
+   Thread.sleep(1000);
+   assertTrue("Back from Home finishes the activity",activity.get().isFinishing());
+  }
+ }
  @Test public void offlineFirstLaunchAndNativeSaveRestore()throws Exception{
   Context context=InstrumentationRegistry.getInstrumentation().getTargetContext();
   new AtomicFile(new File(context.getFilesDir(),"sudoku-v1.json")).delete();

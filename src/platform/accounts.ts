@@ -23,7 +23,8 @@ export class ProfileStorage implements Storage {
   }else this.vault.profiles.guest=validateState(value);}this.initialized=true;}
   const state=this.vault.profiles[this.vault.active];return state?JSON.stringify(state):null;
  }
- async write(value:string){const state=validateState(JSON.parse(value));const next={...this.vault,profiles:{...this.vault.profiles,[this.vault.active]:state}};await this.commit(next)}
+ async write(value:string){await this.writeLocalState(validateState(JSON.parse(value)))}
+ async writeLocalState(state:State){const next={...this.vault,profiles:{...this.vault.profiles,[this.vault.active]:state}};await this.commit(next)}
  private async commit(next:Vault){
   // Keep legacy guest storage readable by older builds until accounts are actually used.
   const value=next.active==='guest'&&Object.keys(next.profiles).length===1?next.profiles.guest:next;

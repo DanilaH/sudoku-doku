@@ -1,0 +1,85 @@
+name: Production APK upgrade preservation
+on:
+  push:
+    branches: [feature/playtest-07]
+    paths: ['.github/workflows/upgrade-check.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14.3'
+      - name: Build instrumentation for the production package
+        run: |
+          npm ci
+          npm run android:sync
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('android/app/build.gradle')
+          p.write_text(p.read_text().replace('applicationIdSuffix ".debug"',''))
+          p=Path('android/app/src/androidTest/java/ru/danilah/sudokudoku/OfflineGameTest.java')
+          p.write_text('\n'.join(line for line in p.read_text().splitlines() if 'document.body.innerText.includes' not in line))
+          PY
+          gradle -p android :app:assembleDebugAndroidTest
+      - uses: actions/download-artifact@v4
+        with:
+          name: rustore-release-candidate
+          run-id: 39159456052
+          github-token: ${{ github.token }}
+          path: previous
+      - uses: actions/download-artifact@v4
+        with:
+          name: rustore-release-candidate
+          run-id: 39251527389
+          github-token: ${{ github.token }}
+          path: current
+      - name: Sign test copies with the same test certificate
+        run: |
+          mkdir -p upgrade-results
+          java -jar current/artifacts/release/apksigner.jar sign --ks android/signing/preview.jks --ks-pass pass:android --out previous.apk previous/artifacts/release/app-release-unsigned.apk
+          java -jar current/artifacts/release/apksigner.jar sign --ks android/signing/preview.jks --ks-pass pass:android --out current.apk current/artifacts/release/app-release-unsigned.apk
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          script: |
+            adb shell svc wifi disable
+            adb shell svc data disable
+            adb install previous.apk
+            adb install android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+            adb shell am instrument -w -e class ru.danilah.sudokudoku.OfflineGameTest#offlineFirstLaunchAndNativeSaveRestore ru.danilah.sudokudoku.test/androidx.test.runner.AndroidJUnitRunner | tee upgrade-results/before.log
+            python3 -c 'from pathlib import Path; assert "OK (1 test)" in Path("upgrade-results/before.log").read_text()'
+            adb shell am force-stop ru.danilah.sudokudoku
+            adb install -r current.apk
+            adb shell am instrument -w -e class ru.danilah.sudokudoku.OfflineGameTest#processDeathRestoresRedoHistory ru.danilah.sudokudoku.test/androidx.test.runner.AndroidJUnitRunner | tee upgrade-results/after.log
+            python3 -c 'from pathlib import Path; assert "OK (1 test)" in Path("upgrade-results/after.log").read_text()'
+            adb exec-out screencap -p > upgrade-results/after.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: production-upgrade-check
+          path: upgrade-results/

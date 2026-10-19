@@ -24,5 +24,5 @@ test('daily victory offers the next unlocked date directly',async({page})=>{
  const g={...newGame(p,false,'test-daily-victory'),dailyDate:'2026-10-19'},cell=g.givens.indexOf(0);g.entries=g.givens.map((d,i)=>d||i===cell?0:g.solution[i]);const state=withGame(initialState(),g);
  await page.evaluate(async s=>{await new Promise<void>(resolve=>{const r=indexedDB.open('sudoku-doku',1);r.onsuccess=()=>{const db=r.result,t=db.transaction('state','readwrite');t.objectStore('state').put(JSON.stringify(s),'root');t.oncomplete=()=>{db.close();resolve()}}})},state);
  await page.reload();await page.getByRole('button',{name:'Календарь',exact:true}).click();await page.getByRole('button',{name:'2026-10-19, начато',exact:true}).click();await page.locator(`[data-cell="${cell}"]`).click();await page.getByRole('button',{name:`Ввести ${g.solution[cell]}`,exact:true}).click();
- await page.getByRole('button',{name:'Следующий нерешённый день'}).click();await expect(page.locator('.game-heading')).toContainText('2026-10-20');
+ await page.getByRole('button',{name:'Задача за 20.10.2026 →'}).click();await expect(page.locator('.game-heading')).toContainText('2026-10-20');
 });

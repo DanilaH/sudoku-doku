@@ -24,6 +24,6 @@ export function nextDaily(s:State,after:string,today:string){
  const done=new Set(s.results.filter(r=>r.dailyDate).map(r=>r.dailyDate));
  const available=(d:string)=>d!==after&&!s.daily[d]?.completed&&!done.has(d);
  for(let date=addDays(after,1);date<=end;date=addDays(date,1))if(available(date))return date;
- for(let date=DAILY_START;date<=end&&date<after;date=addDays(date,1))if(available(date))return date;
+ for(let date=after>end?end:addDays(after,-1);date>=DAILY_START;date=addDays(date,-1))if(available(date))return date;
  return null;
 }

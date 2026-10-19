@@ -253,7 +253,7 @@ export function withGame(state: State, g: Game, now = Date.now()): State {
   const activity=activityOf(state), legacy=legacyActivity(state,activity);
   activity[g.id]={level:g.difficulty,ms:Math.max(activity[g.id]?.ms??0,g.activeMs)};
   const activeByLevel=activityTotals(activity,legacy);
-  g={...g,updatedAt:now};
+  g={...g,updatedAt:now,...(g.completed ? {undo:[],redo:[]} : {})};
   const results = [...state.results];
   if (g.completed && !results.some((r) => r.gameId === g.id))
     results.push({
@@ -291,6 +291,13 @@ export function nextPuzzle<T extends PuzzleRef>(
     s.results.filter((r) => !r.dailyDate).map((r) => r.puzzleId),
   );
   return ps.find((p) => p.difficulty === l && !done.has(p.puzzle_id)) ?? null;
+}
+/** Cycle through the bank after the most recently completed repeat. */
+export function repeatPuzzle<T extends PuzzleRef>(ps:T[], s:State, level:Difficulty) {
+  const bank=ps.filter(p=>p.difficulty===level);
+  const last=s.results.filter(r=>!r.dailyDate && r.replay && r.difficulty===level).at(-1);
+  const index=last ? bank.findIndex(p=>p.puzzle_id===last.puzzleId) : -1;
+  return bank[(index+1)%bank.length] ?? null;
 }
 export function validateState(value: unknown): State {
   const raw = value as State;
@@ -492,7 +499,9 @@ export function validateState(value: unknown): State {
         }
     }
   }
-  return structuredClone(s);
+  // Completed games cannot undo. Compact old saves only after validating their history.
+  for (const g of [s.current,s.normal,...Object.values(s.daily)]) if(g?.completed){g.undo=[];g.redo=[];}
+  return s;
 }
 
 export function validDate(date: string) {

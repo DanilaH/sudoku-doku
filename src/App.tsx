@@ -24,6 +24,7 @@ import {
   conflicts,
   withGame,
   nextPuzzle,
+  repeatPuzzle,
   type Game,
   type State,
 } from "./core/game";
@@ -189,8 +190,11 @@ export default function Doku() {
     tutorialOrigin.current = page;
     setPage("tutorial");
   }
+  const trophyOrigin = useRef<Page>("home");
+  function showTrophies() { trophyOrigin.current = page; setPage("trophies"); }
   const game = state.current;
   const completed = Boolean(game?.completed);
+  useEffect(() => { if (completed && page === "play") window.scrollTo({top:0,behavior:"instant"}); }, [completed,page]);
   const running =
     loaded &&
     page === "play" &&
@@ -562,6 +566,7 @@ export default function Doku() {
       setPage(tutorialOrigin.current);
       return;
     }
+    if (page === "trophies") { setPage(trophyOrigin.current); return; }
     if (page === "privacy") {
       setPage("settings");
       return;
@@ -606,7 +611,7 @@ export default function Doku() {
     if (failure) return;
     const p =
       nextPuzzle(puzzles, sref.current, level) ??
-      (replay ? puzzles.find((p) => p.difficulty === level) : null);
+      (replay ? repeatPuzzle(puzzles, sref.current, level) : null);
     if (!p) {
       setModal({ kind: "new", level, replay: true });
       return;
@@ -707,6 +712,7 @@ export default function Doku() {
       : [];
   const progress = bankProgress(puzzles,state.results), reward = monthProgress(state.daily,today.slice(0,7));
   const earnedYear = Array.from({length:12},(_,i)=>`${today.slice(0,4)}-${String(i+1).padStart(2,"0")}`).filter(m=>monthProgress(state.daily,m).tier>0).length;
+  const archivedGame = Object.values(state.daily).filter(g => !g.completed && g.dailyDate !== today).sort((a,b)=>(b.updatedAt??0)-(a.updatedAt??0))[0];
   const followingDay = game?.dailyDate ? nextDaily(state,game.dailyDate,today) : null;
   const dailyAvailable = today >= DAILY_START && today <= DAILY_END;
   if (!loaded)
@@ -831,9 +837,10 @@ export default function Doku() {
                   <div className="bank-progress"><span>Решено {progress.solved} из {progress.total}</span><progress value={progress.solved} max={progress.total} aria-label="Прогресс обычных задач" /></div>
                 </section>
                 <section className="daily-panel">
-                  <div className="daily-heading"><div><h2>Задача дня</h2><p>{new Date(today+"T12:00:00").toLocaleDateString("ru",{day:"numeric",month:"long"})}{dailyAvailable ? ` · ${labels[(state.daily[today] ?? dailyPuzzle(today)).difficulty]}` : ""}</p></div><button className="calendar-link" onClick={() => {setCalendarMonth(undefined);setPage("daily");}}><Glyph name="calendar" />Календарь</button></div>
+                  <div className="daily-heading"><div><h2>Задача дня</h2><p>{new Date(today+"T12:00:00").toLocaleDateString("ru",{day:"numeric",month:"long"})}{dailyAvailable ? ` · ${labels[(state.daily[today] ?? dailyPuzzle(today)).difficulty]}` : ""}</p></div><button className="calendar-link" onClick={() => {setPage("daily");}}><Glyph name="calendar" />Календарь</button></div>
                   <button className="primary secondary" disabled={!dailyAvailable} onClick={() => daily(today)}>{!dailyAvailable ? "Нужен новый банк задач" : state.daily[today]?.completed ? "Решено ✓" : state.daily[today] ? "Продолжить задачу дня" : "Играть сегодня"}</button>
-                  <button className="home-medal" onClick={() => setPage("trophies")}>
+                  {archivedGame && <button className="archive-resume" disabled={Boolean(failure)} onClick={() => resume(archivedGame)}>Продолжить {archivedGame.dailyDate!.split('-').reverse().join('.')} →</button>}
+                  <button className="home-medal" onClick={showTrophies}>
                     <Trophy tier={reward.tier} month={Number(today.slice(5,7))} />
                     <span><strong>{reward.tier===3 ? "Золото получено" : `До ${["бронзы","серебра","золота"][reward.tier]}: ${reward.target-reward.solved} задач`}</strong><small>Медали за {today.slice(0,4)} год: {earnedYear}/12</small></span>
                   </button>
@@ -842,16 +849,16 @@ export default function Doku() {
               <nav className="home-links">
                 <button onClick={showTutorial}>Как играть</button>
                 <button onClick={() => setPage("stats")}>Статистика</button>
-                <button onClick={() => setPage("trophies")}>Трофеи</button>
+                <button onClick={showTrophies}>Трофеи</button>
 
               </nav>
             </section>
           )}
 
           {page === "play" && game && (
-            <section className="play">
+            <section className={`play ${completed ? "play-completed" : ""}`}>
               <div className="game-heading">
-                {!completed && game.selected === null && <p className="start-instruction">{game.inputMode === "digit" ? "Выберите цифру, затем нажимайте пустые клетки" : "Выберите пустую клетку, затем цифру"}</p>}
+                {!completed && <p className="start-instruction" aria-live="polite">{game.selected !== null && game.givens[game.selected] ? "Исходная цифра — менять нельзя" : game.noteMode ? "Заметки включены — отмечайте кандидатов" : game.inputMode === "digit" ? game.activeDigit ? `Цифра ${game.activeDigit} выбрана — нажимайте клетки` : "Выберите цифру, затем клетки" : "Выберите пустую клетку, затем цифру"}</p>}
                 <div>
                   <span className="eyebrow">
                     {game.dailyDate ? `${game.dailyDate} · ` : ""}
@@ -920,11 +927,11 @@ export default function Doku() {
                           }
                         >
                           {d ? (
-                            <span key={d}>{d}</span>
+                            <span className={game.givens[c] ? "given-digit" : "entered-digit"} key={d}>{d}</span>
                           ) : (
                             <span className="notes">
                               {Array.from({ length: 9 }, (_, i) => (
-                                <i key={i}>
+                                <i key={`${i}:${Boolean(game.notes[c] & (1 << (i + 1)))}`} className={game.notes[c] & (1 << (i + 1)) ? "note-present" : ""}>
                                   {game.notes[c] & (1 << (i + 1)) ? i + 1 : ""}
                                 </i>
                               ))}
@@ -972,7 +979,7 @@ export default function Doku() {
                           return (
                             <button
                               className="month-reward"
-                              onClick={() => setPage("trophies")}
+                              onClick={showTrophies}
                             >
                               <span>
                                 Месяц: {p.solved}/{p.total}
@@ -1013,7 +1020,7 @@ export default function Doku() {
                             : void leaveResult("new")
                         }
                       >
-                        {game.dailyDate ? followingDay ? "Следующий нерешённый день →" : "На сегодня всё · В меню" : nextPuzzle(puzzles,state,game.difficulty) ? "Следующая задача →" : "Повторить уровень →"}
+                        {game.dailyDate ? followingDay ? `Задача за ${followingDay.split("-").reverse().join(".")} →` : "На сегодня всё · В меню" : nextPuzzle(puzzles,state,game.difficulty) ? "Следующая задача →" : "Повторить уровень →"}
                       </button>
                       {game.dailyDate && <button className="text-button" disabled={adBusy} onClick={()=>{setCalendarMonth(game.dailyDate!.slice(0,7));setPage("daily")}}>К календарю</button>}
                       <button
@@ -1319,7 +1326,7 @@ export default function Doku() {
           )}
           {page === "profile" && <Profile key={`${accountId}:${state.profile?.updatedAt}`} state={state} accountId={accountId} available={platform.accounts.available} busy={profileBusy} message={syncMessage}
             rename={name=>{void persist({...sref.current,revision:sref.current.revision+1,profile:{name,updatedAt:Date.now()}})}}
-            connect={()=>void profileAction('connect')} sync={()=>void profileAction('sync')} disconnect={()=>void profileAction('disconnect')} trophies={()=>setPage('trophies')} />}
+            connect={()=>void profileAction('connect')} sync={()=>void profileAction('sync')} disconnect={()=>void profileAction('disconnect')} trophies={showTrophies} />}
           {page === "stats" && <Statistics state={state} />}
           {page === "daily" && (
             <Calendar
@@ -1329,7 +1336,7 @@ export default function Doku() {
               open={daily}
               initialMonth={calendarMonth}
               onMonthChange={setCalendarMonth}
-              trophies={() => setPage("trophies")}
+              trophies={showTrophies}
             />
           )}
           {page === "trophies" && (

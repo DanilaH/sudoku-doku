@@ -18,8 +18,8 @@ android {
         applicationId "ru.danilah.sudokudoku"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 9
-        versionName "0.9.0"
+        versionCode 10
+        versionName "0.10.0"
         buildConfigField "boolean", "ADS_ENABLED", "true"
         buildConfigField "boolean", "FORCE_NO_FILL", "false"
         buildConfigField "String", "BANNER_ID", "\"${project.findProperty('bannerId') ?: ''}\""

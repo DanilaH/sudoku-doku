@@ -1111,7 +1111,7 @@ dd {
     gap: 16px;
   }
   .board-wrap {
-    width: min(100%, max(274px, calc(100dvh - 320px)));
+    width: min(100%, max(252px, calc(100dvh - 350px)));
     align-self: center;
   }
   .game-controls {
@@ -1231,7 +1231,7 @@ dd {
     min-height: 56px;
   }
   .board-wrap {
-    width: min(100%, max(274px, calc(100dvh - 320px)));
+    width: min(100%, max(252px, calc(100dvh - 350px)));
   }
   .numpad button {
     min-height: 48px;
@@ -1478,11 +1478,11 @@ progress::-webkit-progress-value {
       background-color 110ms,
       color 110ms;
   }
-  .cell.selected > span:not(.notes) {
+  .cell > .entered-digit {
     animation: digit-in 150ms ease-out;
   }
-  .tools .active,
-  .notes i {
+  .tools [aria-pressed="true"],
+  .notes i.note-present {
     animation: digit-in 160ms ease-out;
   }
   .trophy-card:active .trophy-art {
@@ -1660,3 +1660,33 @@ progress::-webkit-progress-value {
 .profile-name button,.profile-actions button,.profile-trophies{padding:10px 12px;min-height:44px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
 .profile-actions{display:flex;gap:8px;flex-wrap:wrap}.profile-status{font-size:13px;min-height:1.4em}.profile-page .statistics{padding-top:0}
 .home-profile{margin-left:auto;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-height:44px;font-size:13px;padding:8px;color:var(--accent);border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+
+/* Audit fixes: stable guidance, reachable results and short-screen layout. */
+.start-instruction { min-height: 28px; display:flex; align-items:center; justify-content:center; margin-top:0; }
+.archive-resume { width:100%; min-height:36px; color:var(--focus); font-size:12px; margin-top:4px; }
+.tools button { padding-inline:2px; }
+@media (min-width:721px) { .tools { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width:720px) {
+  .play-completed .game-controls { order:-1; }
+  .play-completed .result { padding:16px; }
+  .play-completed .win-mark, .play-completed .result-caption { display:none; }
+  .play-completed .result h2 { font-size:22px; }
+}
+@media (orientation:landscape) and (max-height:600px) and (min-width:600px) {
+  .game-page .top { height:40px; margin-bottom:0; }
+  .game-heading { margin-bottom:4px; min-height:28px; }
+  .game-layout { display:grid; grid-template-columns:minmax(230px,calc(100dvh - 150px)) minmax(260px,1fr); gap:20px; justify-content:center; }
+  .board-wrap { width:100%; }
+  .game-controls { width:100%; }
+  .tools { grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px; margin-bottom:6px; }
+  .tools button { min-height:44px; font-size:11px; gap:2px; }
+  .numpad { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:4px; }
+  .numpad button, .numpad button:nth-child(6) { grid-column:auto; min-height:44px; font-size:24px; }
+  .secondary-tools { margin-top:4px; }
+  .cell { font-size:24px; }
+  .notes i { font-size:9px; }
+  .result { padding:12px; }
+  .win-mark, .result-caption { display:none; }
+  .result h2 { font-size:20px; }
+  .result dl { margin:8px 0; }
+}

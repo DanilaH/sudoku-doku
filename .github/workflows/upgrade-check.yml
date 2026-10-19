@@ -44,13 +44,26 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: rustore-release-candidate
-          run-id: 39159456052
+          run-id: 39251527389
           github-token: ${{ github.token }}
           path: previous
+      - name: Wait for the verified 0.10 release artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for attempt in $(seq 1 60); do
+            status=$(gh api repos/DanilaH/sudoku-doku/actions/runs/39277239236 --jq '.status')
+            if [ "$status" = completed ]; then
+              test "$(gh api repos/DanilaH/sudoku-doku/actions/runs/39277239236 --jq '.conclusion')" = success
+              exit $?
+            fi
+            sleep 15
+          done
+          exit 1
       - uses: actions/download-artifact@v4
         with:
           name: rustore-release-candidate
-          run-id: 39251527389
+          run-id: 39277239236
           github-token: ${{ github.token }}
           path: current
       - name: Sign test copies with the same test certificate

@@ -1690,3 +1690,19 @@ progress::-webkit-progress-value {
   .result h2 { font-size:20px; }
   .result dl { margin:8px 0; }
 }
+@media (min-width:721px) and (max-width:900px) and (min-height:601px) {
+  .secondary-tools { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:2px 8px; }
+  .mode-picker { grid-column:1 / -1; }
+  .mode-picker summary { white-space:nowrap; }
+}
+@media (max-width:720px) and (max-height:700px) {
+  .page-home .saved-overview .eyebrow, .page-home .preview-caption { display:none; }
+  .page-home .saved-overview .board-preview { width:56px; flex-basis:56px; }
+  .page-home .saved-overview h2 { font-size:16px; }
+  .page-home .primary { min-height:44px; padding:10px 16px; }
+  .page-home .home-medal { min-height:52px; padding:6px; margin-top:6px; }
+  .page-home .home-medal .trophy-art { width:34px; height:34px; flex-basis:34px; }
+  .page-home .home-columns { gap:6px; }
+  .page-home .daily-heading { margin-bottom:8px; }
+  .page-home .home-links { margin-top:4px; }
+}

@@ -1706,3 +1706,9 @@ progress::-webkit-progress-value {
   .page-home .daily-heading { margin-bottom:8px; }
   .page-home .home-links { margin-top:4px; }
 }
+@media (orientation:landscape) and (max-height:600px) and (min-width:600px) {
+  .result { display:flex; flex-direction:column; }
+  .result > .primary { order:1; margin-top:12px; }
+  .result > .month-reward, .result > dl { order:2; }
+  .result > .text-button { order:3; }
+}

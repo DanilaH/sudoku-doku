@@ -1,5 +1,13 @@
 # Судоку
 
+## RuStore 0.9
+
+1800 обычных задач (600 на сложность), отдельный ежедневный банк, локальный профиль, статистика и медали. Социальные функции RuStore отложены; регистрация не нужна. Подписанная Android-сборка подготовлена, в магазин ещё не отправлена.
+
+[Сборка и проверки 0.9](docs/RELEASE_09.md) · [Материалы карточки](docs/STORE_RUSTORE.md) · [Политика](https://danilah.github.io/sudoku-doku/privacy.html).
+
+Ниже — история изменений и команды разработки; сведения о старых объёмах банка относятся к указанным версиям.
+
 ## Версия 0.4
 Переходы экранов и диалогов, отклик на нажатия, новые короткие звуки и помесячные трофеи. Архив задач расширен до января 2025 года без изменения уже существовавших задач 2026 года. [Подробности](docs/MOTION_TROPHIES.md).
 
@@ -47,7 +55,7 @@ cd android
 
 APK: `android/app/build/outputs/apk/debug/app-debug.apk`. Debug uses only demo ads and does not activate AppMetrica. A small application-owned Capacitor plugin integrates SDKs and serial AtomicFile persistence. Optional screen wake is limited to active gameplay. Build with `-PdisableAds=true` to disable ad initialization/requests; `-PforceNoFill=true` exercises no-fill. Both are debug-only switches.
 
-Production properties: `bannerId`, `interstitialId`, `appMetricaKey`. Release compilation rejects absent/demo IDs. Sign with the owner's existing keystore; never commit passwords/key material. No invented production signing key is configured. Check a signed update preserves data. Complete and host docs/PRIVACY_DRAFT.md and finish docs/STORE_RUSTORE.md. Debug APKs are for testing, not moderation.
+Production properties: `bannerId`, `interstitialId`, `appMetricaKey`, supplied through repository secrets. Release compilation rejects absent/demo/malformed ad IDs. Use the private production certificate introduced with 0.8 for every update; it and its password are backed up outside the repository. Never use the public preview key for store delivery. Published policy: `public/privacy.html`; current listing and manual phone checks: `docs/STORE_RUSTORE.md`. Debug APKs are for testing, not moderation.
 
 ## Yandex Games
 

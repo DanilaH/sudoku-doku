@@ -6,11 +6,11 @@ const [source,out]=process.argv.slice(2);
 if(!source||!out)throw Error('node tools/store-media.mjs SOURCE_DIR OUTPUT_DIR');
 for(const d of ['with-text','without-text','originals'])fs.mkdirSync(path.join(out,d),{recursive:true});
 const shots=[
- ['01-game','android-game-light.png','Судоку. Просто<br>начните играть.','Заметки, отмена и подсказки'],
+ ['01-game','android-game-light.png','Судоку без<br>интернета.','Заметки, отмена и подсказки'],
  ['02-home','android-home-06.png','1800 задач.<br>Три сложности.','Выбирайте свой уровень'],
  ['03-calendar','store-calendar.png','Новый день —<br>новая задача.','Пропущенные дни тоже доступны'],
  ['04-trophies','store-trophies.png','Соберите медали<br>за каждый месяц.','Бронза, серебро и золото'],
- ['05-statistics','store-statistics.png','Ваш прогресс.<br>Всё перед глазами.','Общая статистика и по сложности'],
+ ['05-statistics','store-statistics.png','Статистика<br>по сложности.','Решённые партии и время игры'],
 ];
 const browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_EXECUTABLE,args:['--no-sandbox']});
 const page=await browser.newPage({viewport:{width:1080,height:1920},deviceScaleFactor:1});

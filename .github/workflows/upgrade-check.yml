@@ -36,7 +36,7 @@ jobs:
           p.write_text(p.read_text().replace('applicationIdSuffix ".debug"',''))
           p=Path('android/app/src/androidTest/java/ru/danilah/sudokudoku/OfflineGameTest.java')
           source='\n'.join(line for line in p.read_text().splitlines() if 'document.body.innerText.includes' not in line and 'import androidx.test.core.app.ActivityScenario;' not in line)
-          source=source.replace('ActivityScenario<MainActivity>','Scenario').replace('ActivityScenario.launch(MainActivity.class)','Scenario.launch()')
+          source=source.replace('ActivityScenario<MainActivity>','Scenario ' ).replace('ActivityScenario.launch(MainActivity.class)','Scenario.launch()')
           wrapper='public class OfflineGameTest { private static class Scenario implements AutoCloseable { private MainActivity activity; static Scenario launch(){ Scenario s=new Scenario(); android.app.Instrumentation i=InstrumentationRegistry.getInstrumentation(); android.content.Intent intent=new android.content.Intent(i.getTargetContext(),MainActivity.class); intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK); s.activity=(MainActivity)i.startActivitySync(intent); return s; } void onActivity(java.util.function.Consumer<MainActivity> callback){ InstrumentationRegistry.getInstrumentation().runOnMainSync(()->callback.accept(activity)); } public void close(){ onActivity(a->a.finish()); InstrumentationRegistry.getInstrumentation().waitForIdleSync(); } }'
           p.write_text(source.replace('public class OfflineGameTest {',wrapper))
           PY

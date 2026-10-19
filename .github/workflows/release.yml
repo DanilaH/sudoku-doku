@@ -1,4 +1,5 @@
 name: RuStore optimized release
+run-name: RuStore 0.10 audit fixes
 on:
   push:
     branches: [feature/playtest-07]

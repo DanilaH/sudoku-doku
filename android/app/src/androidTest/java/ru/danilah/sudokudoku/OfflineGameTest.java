@@ -21,6 +21,9 @@ public class OfflineGameTest {
   return null;
  }
  private void screenshot(String name)throws Exception{
+  // WebView DOM changes precede the emulator compositor; wait for the displayed frame.
+  InstrumentationRegistry.getInstrumentation().waitForIdleSync();
+  Thread.sleep(2000);
   android.graphics.Bitmap bitmap=InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
   File path=new File(InstrumentationRegistry.getInstrumentation().getTargetContext().getExternalFilesDir(null),name);
   try(java.io.FileOutputStream out=new java.io.FileOutputStream(path)){assertTrue(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out));}

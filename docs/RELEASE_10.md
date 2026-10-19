@@ -27,3 +27,17 @@ Follow-up verification:
 - Randomized 36,000-action core audit repeated after the changes: passed.
 
 Local Chromium on this shared host hit time limits in full click-through scenarios; these are not recorded as product defects. GitHub run 39277497471's web job passed all 13 browser scenarios in 37.3 seconds; its Yandex assertion still referred to the deliberately hidden decorative victory caption, so the assertion was updated to the visible victory heading. No persistence/ad assertion was removed.
+
+Final short-screen follow-up: a daily victory's medal panel pushed the CTA bottom to y=395 on an 844×390 viewport. The final CSS places the action before reward/statistics in short landscape layouts; the verified CTA now spans y=134…186. This was fixed before delivering the APK.
+
+
+## Delivered APK
+- Version 0.10.0 / code 10, package `ru.danilah.sudokudoku`, non-debuggable, min SDK 26.
+- 5,671,153 bytes; SHA-256 `92027001247a618f6ae1712a8975216c527ecc234ba53d7e7387acf9bdb43dcb`.
+- Same private production certificate as 0.8/0.9; v2/v3 signatures verified.
+- Final runtime commit `d2ee28392d2dcbc70e27cc66773576de60c28b8d`.
+- Final build run 39279448618, artifact 12199242500. Production startup, offline play and process-death/redo restoration passed. Packaged CSS checked for both final compact-home and daily-victory fixes.
+- Upgrade run 39277348329, artifact 12198083609: both pre-update and post-update tests passed (0.9 → initial 0.10 candidate, before the later CSS-only layout adjustments). Test copies use the same preview certificate; delivered APK is separately signed with the private production certificate. A follow-up upgrade run 39278201338 was also scheduled for the intermediate layout candidate.
+- Local platform suite: 4/4 passed. New dual-save menu and short-landscape daily-victory regression scenarios passed. Core unit suite: 31/31 passed.
+- Delivered file `sudoku-doku-0.10.apk`, Library identity `libfile_4b334735a45c81918a6f5b7a52f1bc17`, version 1.
+- Not submitted to RuStore. Live ad fill/analytics delivery and physical-device accessibility remain outside this automated verification.

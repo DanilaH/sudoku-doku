@@ -12,8 +12,8 @@ test('compact mobile menu fits safe areas; touch settings are quiet',async({brow
  await page.getByRole('button',{name:'Настройки',exact:true}).click();await expect(page.getByText('Управление с клавиатуры')).toHaveCount(0);await context.close();
 });
 test('date rolls over without interrupting a session',async({page})=>{
- await page.clock.install({time:new Date('2026-10-18T23:59:58')});await page.goto('/');await expect(page.locator('.daily-heading')).toContainText('18 октября');
- await page.clock.fastForward(3000);await expect(page.locator('.daily-heading')).toContainText('19 октября');
+ await page.clock.install({time:new Date('2026-10-18T23:58:00')});await page.goto('/');await expect(page.locator('.daily-heading')).toContainText('18 октября');
+ await page.clock.fastForward(121000);await expect(page.locator('.daily-heading')).toContainText('19 октября');
  await page.getByRole('button',{name:'Играть сегодня'}).click();await expect(page.locator('.game-heading')).toContainText('2026-10-19');
  await page.clock.fastForward(86400000);await expect(page.locator('.game-heading')).toContainText('2026-10-19');
 });

@@ -12,7 +12,7 @@ test('SDK markup, pause events, reliable storage and exactly one result ad',asyn
  await expect.poll(()=>page.evaluate(()=>(window as any).sdkEvents.includes('ready'))).toBe(true);
  await expect.poll(()=>page.evaluate(()=>(window as any).sdkEvents.includes('start'))).toBe(true);
  await page.evaluate(()=>(window as any).sdkHandlers.game_api_pause());await expect(page.getByText('Время остановлено')).toBeVisible();await page.evaluate(()=>(window as any).sdkHandlers.game_api_resume());await expect(page.locator('.pause-cover')).toHaveCount(0);
- await page.locator(`[data-cell="${c}"]`).click();await page.getByRole('button',{name:`Ввести ${g.solution[c]}`,exact:true}).click();await expect(page.getByText('Все цифры')).toBeVisible();await expect(page.getByText('Сохранено',{exact:true})).toBeAttached();
+ await page.locator(`[data-cell="${c}"]`).click();await page.getByRole('button',{name:`Ввести ${g.solution[c]}`,exact:true}).click();await expect(page.getByRole('heading',{name:'Судоку решено'})).toBeVisible();await expect(page.getByText('Сохранено',{exact:true})).toBeAttached();
  await page.evaluate(()=>{const btn=document.querySelector<HTMLButtonElement>('.result .text-button')!;btn.click();btn.click()});await expect(page.getByRole('button',{name:'Новая игра'})).toBeVisible();expect(await page.evaluate(()=>(window as any).sdkEvents.filter((s:string)=>s==='ad').length)).toBe(1);
  const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('sudoku-doku-v1')!));expect(saved.results).toHaveLength(3);expect(saved.ads.impressions).toHaveLength(1);
 });

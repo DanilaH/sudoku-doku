@@ -24,6 +24,3 @@ for fill,stroke,sw,d in paths:
  x+='  <path android:fillColor="'+('#00000000' if fill=='none' else fill)+'"'+(f' android:strokeColor="{stroke}" android:strokeWidth="{sw}"' if stroke else '')+' android:pathData="'+d+'"/>\n'
 x+='</vector>\n'
 (root/'android/app/src/main/res/drawable-v24/ic_launcher_foreground.xml').write_text(x)
-# Store media must always use the shared icon, not an independent hand-drawn copy.
-p=root/'tools/store-media.mjs';s=p.read_text();a=s.index('await page.setContent(`<style>body{margin:0;background:#f7f8fc}');b=s.index('\nawait page.screenshot',a)
-s=s[:a]+"await page.setContent(`<style>body{margin:0;background:#f7f8fc}svg{width:512px;height:512px}</style>${fs.readFileSync(new URL('../public/icon.svg',import.meta.url),'utf8')}`);"+s[b:];p.write_text(s)

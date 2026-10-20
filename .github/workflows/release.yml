@@ -82,6 +82,12 @@ jobs:
             adb shell am force-stop ru.danilah.sudokudoku.releasecheck
             adb shell am instrument -w -e class ru.danilah.sudokudoku.OfflineGameTest#nativeBannerMatchesReservedSlot ru.danilah.sudokudoku.releasecheck.test/androidx.test.runner.AndroidJUnitRunner | tee artifacts/release/banner-geometry.log
             python3 -c 'from pathlib import Path; assert "OK (1 test)" in Path("artifacts/release/banner-geometry.log").read_text()'
+            adb shell svc wifi enable
+            adb shell svc data enable
+            adb shell am force-stop ru.danilah.sudokudoku.releasecheck
+            adb logcat -c
+            adb shell am instrument -w -e class ru.danilah.sudokudoku.OfflineGameTest#onlineDemoAdProbe ru.danilah.sudokudoku.releasecheck.test/androidx.test.runner.AndroidJUnitRunner | tee artifacts/release/online-demo.log
+            adb logcat -d -s DokuAds:I AndroidRuntime:E > artifacts/release/online-ads.log
             adb pull /sdcard/Android/data/ru.danilah.sudokudoku.releasecheck/files artifacts/release/screenshots
 
       - uses: actions/upload-artifact@v4

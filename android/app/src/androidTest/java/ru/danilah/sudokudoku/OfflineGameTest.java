@@ -47,6 +47,16 @@ public class OfflineGameTest {
   while(System.nanoTime()<end){if("true".equals(evaluate(s,condition)))return;Thread.sleep(100);}
   fail("Condition timed out: "+condition+"; page="+evaluate(s,"document.body.innerText"));
  }
+ @Test public void onlineDemoAdProbe()throws Exception{
+  Context context=InstrumentationRegistry.getInstrumentation().getTargetContext();
+  new AtomicFile(new File(context.getFilesDir(),"sudoku-v1.json")).delete();
+  try(ActivityScenario<MainActivity>s=ActivityScenario.launch(MainActivity.class)){
+   waitFor(s,"!!document.querySelector('.new-game .primary')");
+   evaluate(s,"document.querySelector('.new-game .primary').click()");waitFor(s,"!!document.querySelector('.difficulty-list button')");
+   evaluate(s,"document.querySelector('.difficulty-list button').click()");waitFor(s,"!!document.querySelector('.ad-slot')");
+   Thread.sleep(35000);screenshot("online-demo-banner.png");
+  }
+ }
  @Test public void nativeBannerMatchesReservedSlot()throws Exception{
   try(ActivityScenario<MainActivity>s=ActivityScenario.launch(MainActivity.class)){
    waitFor(s,"!!document.querySelector('.new-game .primary')");

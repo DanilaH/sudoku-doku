@@ -34,3 +34,6 @@
 # Kotlin standard-library facades are shared by app and instrumentation APKs.
 # Keep their ABI: the test APK excludes classes packaged in the app before shrinking.
 -keep class kotlin.** { *; }
+
+# Shared with the native placement regression in the minified instrumentation APK.
+-keep class ru.danilah.sudokudoku.BannerPlacement { *; }

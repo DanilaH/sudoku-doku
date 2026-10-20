@@ -1,5 +1,5 @@
 name: RuStore optimized release
-run-name: RuStore 0.13 uncapped daily ads
+run-name: RuStore 0.14 five-minute ad interval
 on:
   push:
     branches: [feature/playtest-07]

@@ -1,5 +1,5 @@
 name: RuStore optimized release
-run-name: RuStore 0.15 aligned launcher icon
+run-name: RuStore 0.16 rewarded hints and ad layout
 on:
   push:
     branches: [feature/playtest-07]
@@ -30,6 +30,7 @@ jobs:
       - name: Build unsigned production APK
         env:
           ORG_GRADLE_PROJECT_bannerId: ${{ secrets.YANDEX_BANNER_ID }}
+          ORG_GRADLE_PROJECT_rewardedId: ${{ secrets.YANDEX_REWARDED_AD_UNIT_ID }}
           ORG_GRADLE_PROJECT_interstitialId: ${{ secrets.YANDEX_INTERSTITIAL_ID }}
           ORG_GRADLE_PROJECT_appMetricaKey: ${{ secrets.APPMETRICA_KEY }}
         run: gradle -p android :app:assembleRelease :app:lintRelease
@@ -76,6 +77,11 @@ jobs:
             python3 -c 'from pathlib import Path; assert "OK (1 test)" in Path("artifacts/release/restore.log").read_text()'
             adb shell am instrument -w -e class ru.danilah.sudokudoku.OfflineGameTest#systemBackReturnsHomeAndExits ru.danilah.sudokudoku.releasecheck.test/androidx.test.runner.AndroidJUnitRunner | tee artifacts/release/back.log
             python3 -c 'from pathlib import Path; assert "OK (1 test)" in Path("artifacts/release/back.log").read_text()'
+            adb shell wm size 1080x2400
+            adb shell wm density 320
+            adb shell am force-stop ru.danilah.sudokudoku.releasecheck
+            adb shell am instrument -w -e class ru.danilah.sudokudoku.OfflineGameTest#nativeBannerMatchesReservedSlot ru.danilah.sudokudoku.releasecheck.test/androidx.test.runner.AndroidJUnitRunner | tee artifacts/release/banner-geometry.log
+            python3 -c 'from pathlib import Path; assert "OK (1 test)" in Path("artifacts/release/banner-geometry.log").read_text()'
             adb pull /sdcard/Android/data/ru.danilah.sudokudoku.releasecheck/files artifacts/release/screenshots
 
       - uses: actions/upload-artifact@v4

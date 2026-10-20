@@ -18,12 +18,13 @@ android {
         applicationId "ru.danilah.sudokudoku"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 15
-        versionName "0.15.0"
+        versionCode 16
+        versionName "0.16.0"
         buildConfigField "boolean", "ADS_ENABLED", "true"
         buildConfigField "boolean", "FORCE_NO_FILL", "false"
         buildConfigField "String", "BANNER_ID", "\"${project.findProperty('bannerId') ?: ''}\""
         buildConfigField "String", "INTERSTITIAL_ID", "\"${project.findProperty('interstitialId') ?: ''}\""
+        buildConfigField "String", "REWARDED_ID", "\"${project.findProperty('rewardedId') ?: ''}\""
         buildConfigField "String", "APPMETRICA_KEY", "\"${project.findProperty('appMetricaKey') ?: ''}\""
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         testProguardFiles "proguard-test.pro"
@@ -43,6 +44,7 @@ android {
             buildConfigField "boolean", "FORCE_NO_FILL", "${project.hasProperty('forceNoFill')}"
             buildConfigField "String", "BANNER_ID", '"demo-banner-yandex"'
             buildConfigField "String", "INTERSTITIAL_ID", '"demo-interstitial-yandex"'
+            buildConfigField "String", "REWARDED_ID", '"demo-rewarded-yandex"'
             buildConfigField "String", "APPMETRICA_KEY", '""'
         }
         release {
@@ -57,6 +59,7 @@ android {
             matchingFallbacks = ['release']
             buildConfigField "String", "BANNER_ID", '\"demo-banner-yandex\"'
             buildConfigField "String", "INTERSTITIAL_ID", '\"demo-interstitial-yandex\"'
+            buildConfigField "String", "REWARDED_ID", '"demo-rewarded-yandex"'
             buildConfigField "String", "APPMETRICA_KEY", '\"\"'
         }
     }
@@ -96,7 +99,7 @@ try {
 // A release must never silently contain test ads or lack monetization configuration.
 tasks.configureEach { t ->
     if (t.name == 'preReleaseBuild') t.doFirst {
-        ['bannerId','interstitialId','appMetricaKey'].each { key ->
+        ['bannerId','interstitialId','rewardedId','appMetricaKey'].each { key ->
             def value = project.findProperty(key)?.toString()
             if (!value || value.startsWith('demo-')) throw new GradleException("Production ${key} is required")
             if (key != 'appMetricaKey' && !(value ==~ /R-M-[0-9]{1,10}-[0-9]{1,7}/))
@@ -104,7 +107,7 @@ tasks.configureEach { t ->
             if (key == 'appMetricaKey' && !(value ==~ /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/))
                 throw new GradleException("Production appMetricaKey must be a UUID")
         }
-        if (project.findProperty('bannerId') == project.findProperty('interstitialId'))
+        if (['bannerId','interstitialId','rewardedId'].collect { project.findProperty(it) }.unique().size()!=3)
             throw new GradleException('Banner and interstitial must use separate ad units')
     }
 }

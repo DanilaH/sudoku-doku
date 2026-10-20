@@ -1,3 +1,4 @@
+import {hintCredits,spendHint,rewardHints} from './core/hint-credits';
 import {version as appVersion} from '../package.json';
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { App as CapacitorApp } from "@capacitor/app";
@@ -80,6 +81,8 @@ type Page =
   | "tutorial"
   | "trophies";
 type Modal =
+  | { kind: "message"; text:string }
+  | { kind: "reward" }
   | { kind: "difficulty" }
   | { kind: "new"; level: Difficulty; replay: boolean }
   | { kind: "hint"; value: Hint; index: number }
@@ -367,6 +370,7 @@ export default function Doku() {
           setState(saved);
         }
         for (const p of puzzles) checkPuzzle(p);
+        await platform.ads.recover(grantHintReward);
         setLoaded(true);
         platform.ready();
         void platform.ads.prepare();
@@ -518,12 +522,12 @@ export default function Doku() {
     return () => window.removeEventListener("keydown", handler);
   }, [running, page, modal]);
   useEffect(() => {
-    const validSlot = running && window.innerHeight >= 740;
     const update = () => {
+      const validSlot = running && window.innerHeight >= 740;
       const r = banner.current?.getBoundingClientRect();
       const visible =
         validSlot &&
-        Boolean(r) &&
+        Boolean(r) && r!.width >= 280 && r!.height >= 50 &&
         r!.bottom <= window.innerHeight &&
         r!.top >= 0;
       void platform.ads.banner({
@@ -560,6 +564,41 @@ export default function Doku() {
 
     };
   }, [running, page]);
+  async function grantHintReward(id:string,gameId:string) {
+    const next=rewardHints(sref.current,gameId,id);
+    lastMono.current=performance.now();
+    await persist({...next,revision:next.revision+1,ads:impression(next.ads,Date.now())});
+    await queue.current!.flush();
+    void event('hint_reward',{game_id:gameId,amount:3});
+  }
+  async function requestHint() {
+    if(transition.current||!running||!sref.current.current)return;
+    const g=sref.current.current;
+    const value=gameHint(g);
+    if(value.kind==='logical' && platform.adsAvailable && hintCredits(g)===0){void platform.ads.prepare();setModal({kind:'reward'});return}
+    transition.current=true;setAdBusy(true);
+    try{
+      if(value.kind==='logical'&&platform.adsAvailable)await persist(withGame(sref.current,spendHint(g)));
+      setModal({kind:'hint',value,index:0});
+    }catch{setFailure('Не удалось сохранить подсказку. Повторите сохранение.')}
+    finally{transition.current=false;setAdBusy(false)}
+  }
+  async function requestReward() {
+    if(transition.current||failure||!sref.current.current)return;
+    transition.current=true;setAdBusy(true);setModal(null);
+    const gameId=sref.current.current.id;
+    try{
+      await queue.current!.flush();
+      await platform.ads.recover(grantHintReward);
+      if(sref.current.current?.id===gameId && hintCredits(sref.current.current)>0){setModal({kind:'message',text:'Подсказки восстановлены.'});return}
+      const result=await platform.ads.reward(gameId,grantHintReward);
+      // Protect from interstitials after any actually shown opt-in ad, including early close.
+      if(result.shown){lastMono.current=performance.now();await persist({...sref.current,revision:sref.current.revision+1,ads:impression(sref.current.ads,Date.now())})}
+      setModal({kind:'message',text:result.rewarded?'Добавлены 3 подсказки.':result.shown?'Просмотр не завершён. Подсказки не списаны.':'Реклама пока недоступна. Попробуйте позже — можно продолжать игру.'});
+    }catch{setFailure('Не удалось сохранить награду. Повторите сохранение.');}
+    finally{transition.current=false;setAdBusy(false)}
+  }
+  useEffect(()=>{const prepare=()=>{void platform.ads.prepare()};window.addEventListener('online',prepare);return()=>window.removeEventListener('online',prepare)},[]);
   function back() {
     if (adBusy || profileBusy) return;
     if (modal) {
@@ -655,6 +694,7 @@ export default function Doku() {
     if (transition.current || failure) return;
     transition.current = true;
     setAdBusy(true);
+    void platform.ads.prepare();
     try {
       await queue.current!.flush();
       const wall = Date.now(),
@@ -1081,20 +1121,10 @@ export default function Doku() {
                         </button>
                         <button
                           disabled={!running}
-                          onClick={() => {
-                            const h = gameHint(game);
-                            setModal({ kind: "hint", value: h, index: 0 });
-                            void event("hint_used", {
-                              technique:
-                                h.kind === "logical"
-                                  ? h.steps.at(-1)!.technique
-                                  : "none",
-                              applied: false,
-                            });
-                          }}
+                          onClick={() => void requestHint()}
                         >
                           <Glyph name="hint" />
-                          <span>Подсказка</span>
+                          <span>{platform.adsAvailable ? hintCredits(game)>0 ? `Подсказка · ${hintCredits(game)}` : '▶ +3 за видео' : 'Подсказка'}</span>
                         </button>
                       </div>
                       <p className="input-caption">
@@ -1384,7 +1414,7 @@ export default function Doku() {
       {modal && (
         <ModalView key={modal.kind} close={() => setModal(null)}>
           <>
-            {modal.kind === "difficulty" ? (
+            {modal.kind === "message" ? (<><h2>{modal.text}</h2><button className="primary" onClick={()=>setModal(null)}>К игре</button></>) : modal.kind === "reward" ? (<><h2>Ещё 3 подсказки</h2><p>Посмотрите рекламу, чтобы получить 3 подсказки для этой партии. Награда выдаётся после подтверждения просмотра.</p><button className="primary" onClick={()=>void requestReward()}>▶ +3 подсказки за видео</button><button className="text-button" onClick={()=>setModal(null)}>Продолжить без подсказки</button></>) : modal.kind === "difficulty" ? (
               <>
                 <h2>Выберите сложность</h2>
                 <div className="difficulty-list">{levels.map(level => <button key={level} aria-label={labels[level]} onClick={() => requestNew(level)}><span>{labels[level]}</span><small>{bankProgress(puzzles,state.results,level).solved}/{bankProgress(puzzles,state.results,level).total}</small><span>→</span></button>)}</div>

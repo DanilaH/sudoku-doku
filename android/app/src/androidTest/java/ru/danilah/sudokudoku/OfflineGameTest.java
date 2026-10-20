@@ -47,6 +47,22 @@ public class OfflineGameTest {
   while(System.nanoTime()<end){if("true".equals(evaluate(s,condition)))return;Thread.sleep(100);}
   fail("Condition timed out: "+condition+"; page="+evaluate(s,"document.body.innerText"));
  }
+ @Test public void nativeBannerMatchesReservedSlot()throws Exception{
+  try(ActivityScenario<MainActivity>s=ActivityScenario.launch(MainActivity.class)){
+   waitFor(s,"!!document.querySelector('.new-game .primary')");
+   evaluate(s,"document.querySelector('.new-game .primary').click()");waitFor(s,"!!document.querySelector('.difficulty-list button')");
+   evaluate(s,"document.querySelector('.difficulty-list button').click()");waitFor(s,"!!document.querySelector('.ad-slot')");
+   assertEquals("true",evaluate(s,"innerHeight>=740 && document.querySelector('.ad-slot').getBoundingClientRect().bottom<=innerHeight"));
+   AtomicReference<android.view.View> found=new AtomicReference<>();
+   String data=evaluate(s,"JSON.stringify((()=>{const r=document.querySelector('.ad-slot').getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,viewport:innerWidth}})())");
+   org.json.JSONObject rect=new org.json.JSONObject(new org.json.JSONTokener(data).nextValue().toString());
+   // Deterministic native view uses the production placement code, independently of ad fill.
+   s.onActivity(a->{android.widget.FrameLayout root=a.findViewById(android.R.id.content);android.view.View view=new android.view.View(a);view.setBackgroundColor(0xffaabbcc);root.addView(view);found.set(view);int[] wl=new int[2],rl=new int[2];webView(a).getLocationOnScreen(wl);root.getLocationOnScreen(rl);try{double scale=webView(a).getWidth()/rect.getDouble("viewport");BannerPlacement.place(view,root,wl[0]-rl[0]+(int)Math.round(rect.getDouble("x")*scale),wl[1]-rl[1]+(int)Math.round(rect.getDouble("y")*scale),(int)Math.round(rect.getDouble("w")*scale),(int)Math.round(rect.getDouble("h")*scale));}catch(org.json.JSONException e){throw new AssertionError(e);}});
+   InstrumentationRegistry.getInstrumentation().waitForIdleSync();Thread.sleep(300);
+   s.onActivity(a->{android.view.View view=found.get();android.webkit.WebView web=webView(a);int[] loc=new int[2],wl=new int[2];view.getLocationOnScreen(loc);web.getLocationOnScreen(wl);try{double scale=web.getWidth()/rect.getDouble("viewport");assertEquals("Banner left matches web slot",wl[0]+rect.getDouble("x")*scale,loc[0],2);assertTrue("Banner top inside slot",loc[1]>=wl[1]+rect.getDouble("y")*scale-2);assertTrue("Banner bottom inside slot",loc[1]+view.getHeight()<=wl[1]+(rect.getDouble("y")+rect.getDouble("h"))*scale+2);}catch(org.json.JSONException e){throw new AssertionError(e);}});
+   screenshot("banner-slot-portrait.png");
+  }
+ }
  @Test public void systemBackReturnsHomeAndExits()throws Exception{
   try(ActivityScenario<MainActivity>s=ActivityScenario.launch(MainActivity.class)){
    waitFor(s,"!!document.querySelector('.new-game')");

@@ -44,6 +44,8 @@ export interface Game {
   undo: Move[];
   redo: Move[];
   activeMs: number;
+  hintCredits?: number;
+  lastHintReward?: string;
   hints: number;
   completed: boolean;
   replay: boolean;
@@ -138,6 +140,7 @@ export function newGame(
     undo: [],
     redo: [],
     activeMs: 0,
+    hintCredits: 3,
     hints: 0,
     completed: false,
     replay,
@@ -440,6 +443,8 @@ export function validateState(value: unknown): State {
       !okNumber(g.activeMs) ||
       !Number.isInteger(g.hints) ||
       g.hints < 0 ||
+      (g.hintCredits !== undefined && (!Number.isInteger(g.hintCredits) || g.hintCredits < 0 || g.hintCredits > 3)) ||
+      (g.lastHintReward !== undefined && (typeof g.lastHintReward !== "string" || g.lastHintReward.length > 128)) ||
       !Array.isArray(g.undo) ||
       !Array.isArray(g.redo)
     )

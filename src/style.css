@@ -1677,18 +1677,20 @@ progress::-webkit-progress-value {
   .play-completed .win-mark, .play-completed .result-caption { display:none; }
   .play-completed .result h2 { font-size:22px; }
 }
-@media (orientation:landscape) and (max-height:600px) and (min-width:600px) {
-  .game-page .top { height:40px; margin-bottom:0; }
+@media (orientation:landscape) and (max-height:600px) and (min-width:568px) {
+  .game-page { max-width:1020px; }
+  .game-page .top { height:44px; margin-bottom:0; }
   .game-heading { margin-bottom:4px; min-height:28px; }
-  .game-layout { display:grid; grid-template-columns:minmax(230px,calc(100dvh - 150px)) minmax(260px,1fr); gap:20px; justify-content:center; }
-  .board-wrap { width:100%; }
+  .game-layout { display:grid; grid-template-columns:minmax(0,calc(100dvh - 140px)) minmax(260px,1fr); gap:12px; justify-content:center; }
+  .board-wrap { width:100%; align-self:start; }
+  .play-completed .game-controls { order:0; }
   .game-controls { width:100%; }
   .tools { grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px; margin-bottom:6px; }
   .tools button { min-height:44px; font-size:11px; gap:2px; }
   .numpad { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:4px; }
   .numpad button, .numpad button:nth-child(6) { grid-column:auto; min-height:44px; font-size:24px; }
   .secondary-tools { margin-top:4px; }
-  .cell { font-size:24px; }
+  .cell { font-size:min(24px,calc((100dvh - 146px) / 12)); }
   .notes i { font-size:clamp(6px, calc((100dvh - 190px) / 27), 9px); }
   .result { padding:12px; }
   .win-mark, .result-caption { display:none; }
@@ -1711,7 +1713,7 @@ progress::-webkit-progress-value {
   .page-home .daily-heading { margin-bottom:8px; }
   .page-home .home-links { margin-top:4px; }
 }
-@media (orientation:landscape) and (max-height:600px) and (min-width:600px) {
+@media (orientation:landscape) and (max-height:600px) and (min-width:568px) {
   .result { display:flex; flex-direction:column; }
   .result > .primary { order:1; margin-top:12px; }
   .result > .month-reward, .result > dl { order:2; }

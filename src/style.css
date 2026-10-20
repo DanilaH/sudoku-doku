@@ -1691,6 +1691,7 @@ progress::-webkit-progress-value {
   .numpad button, .numpad button:nth-child(6) { grid-column:auto; min-height:44px; font-size:24px; }
   .secondary-tools { margin-top:4px; }
   .cell { font-size:min(24px,calc((100dvh - 146px) / 12)); }
+  .notes { padding:0; }
   .notes i { font-size:clamp(6px, calc((100dvh - 190px) / 27), 9px); }
   .result { padding:12px; }
   .win-mark, .result-caption { display:none; }

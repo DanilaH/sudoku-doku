@@ -23,7 +23,7 @@ for(let i=0;i<shots.length;i++){
 }
 // Same vector geometry and colours as the Android launcher foreground.
 await page.setViewportSize({width:512,height:512});
-await page.setContent(`<style>body{margin:0;background:#f7f8fc}svg{width:512px;height:512px}</style><svg viewBox="0 0 108 108" xmlns="http://www.w3.org/2000/svg"><rect width="108" height="108" fill="#f7f8fc"/><path fill="none" stroke="#365f8b" stroke-width="2" d="M44 25V83M64 25V83M25 44H83M25 64H83M25 25H83V83H25Z"/><path fill="none" stroke="#365f8b" stroke-width="3" stroke-linecap="round" d="M34 31V39M51 51H57V58H51V51M57 58V62M72 70H77L72 79H77"/></svg>`);
+await page.setContent(`<style>body{margin:0;background:#f7f8fc}svg{width:512px;height:512px}</style>${fs.readFileSync(new URL('../public/icon.svg',import.meta.url),'utf8')}`);
 await page.screenshot({path:path.join(out,'icon-512.png')});
 // Contact sheet for visual review, not for store upload.
 await page.setViewportSize({width:1500,height:1100});

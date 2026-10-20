@@ -1,0 +1,10 @@
+import fs from 'node:fs';
+import {chromium} from '@playwright/test';
+const out=process.argv[2] ?? 'reports/icon';fs.mkdirSync(out,{recursive:true});
+const svg=fs.readFileSync('public/icon.svg','utf8');
+const browser=await chromium.launch({executablePath:process.env.PLAYWRIGHT_EXECUTABLE,args:['--no-sandbox']});
+const page=await browser.newPage({viewport:{width:512,height:512},deviceScaleFactor:1});
+await page.setContent(`<style>body{margin:0}svg{width:512px;height:512px}</style>${svg}`);await page.screenshot({path:out+'/sudoku-icon-512.png'});
+await page.setViewportSize({width:900,height:440});
+await page.setContent(`<style>body{margin:0;padding:40px;background:#e6eaf1;display:flex;gap:40px;align-items:center;font-family:sans-serif}.icon svg{display:block;width:100%;height:100%}.icon{overflow:hidden}p{text-align:center;color:#365f8b}</style>`+[[256,52],[128,64],[64,14],[48,24]].map(([size,round])=>`<div><div class="icon" style="width:${size}px;height:${size}px;border-radius:${round}px">${svg}</div><p>${size} px</p></div>`).join(''));
+await page.screenshot({path:out+'/sudoku-icon-preview.png'});await browser.close();

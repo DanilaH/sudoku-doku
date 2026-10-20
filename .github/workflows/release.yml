@@ -1,5 +1,5 @@
 name: RuStore optimized release
-run-name: RuStore 0.14 five-minute ad interval
+run-name: RuStore 0.15 aligned launcher icon
 on:
   push:
     branches: [feature/playtest-07]

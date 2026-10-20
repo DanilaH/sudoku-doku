@@ -58,6 +58,8 @@ public class OfflineGameTest {
   }
  }
  @Test public void nativeBannerMatchesReservedSlot()throws Exception{
+  Context context=InstrumentationRegistry.getInstrumentation().getTargetContext();
+  new AtomicFile(new File(context.getFilesDir(),"sudoku-v1.json")).delete();
   try(ActivityScenario<MainActivity>s=ActivityScenario.launch(MainActivity.class)){
    waitFor(s,"!!document.querySelector('.new-game .primary')");
    evaluate(s,"document.querySelector('.new-game .primary').click()");waitFor(s,"!!document.querySelector('.difficulty-list button')");

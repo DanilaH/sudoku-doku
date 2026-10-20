@@ -538,6 +538,13 @@ export default function Doku() {
           height: r?.height ?? 0,
           bottom: window.innerHeight - (r?.bottom ?? 0),
           left: r?.left ?? 0,
+        }).then(result=>{
+          if(!visible || !banner.current || !result || typeof result!=='object' || !('height' in result))return;
+          const height=Number(result.height);
+          if(Number.isFinite(height)&&height>=50&&height<=window.innerHeight*.2){
+            const requested=Math.max(80,Math.ceil(height));
+            if(banner.current.style.height!==`${requested}px`)banner.current.style.height=`${requested}px`;
+          }
         }).catch(() => {});
 
     };

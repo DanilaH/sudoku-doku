@@ -1924,3 +1924,32 @@ progress::-moz-progress-bar { background:var(--accent); border-radius:99px; }
 @media(orientation:landscape) and (max-height:600px) and (min-width:568px){
  .game-page:has(.ad-slot) .numpad small { left:auto; right:5px; bottom:3px; font-size:8px; }
 }
+@media(orientation:landscape) and (max-height:600px){
+ .page-home { padding-block:6px; }
+ .page-home .top { height:36px; margin-bottom:6px; }
+ .page-home .home-columns { grid-template-columns:1fr 1fr; gap:10px; padding:0 0 8px; }
+ .page-home .session-card,.page-home .daily-panel { padding:10px 12px; }
+ .page-home .daily-eyebrow,.page-home .session-intro p,.page-home .bank-levels { display:none; }
+ .page-home .session-intro { margin-bottom:10px; }
+ .page-home .session-intro .new-session-title { font-size:28px; margin:4px 0; }
+ .page-home .session-intro .eyebrow { font-size:9px; }
+ .page-home .daily-heading { margin-bottom:8px; }
+ .page-home .daily-heading h2 { font-size:20px; }
+ .page-home .daily-heading p { font-size:11px; margin-top:4px; }
+ .page-home .daily-heading .calendar-link { font-size:0; padding:6px; min-width:36px; min-height:36px; }
+ .page-home .calendar-link svg { width:18px; height:18px; }
+ .page-home .primary { min-height:40px; padding:8px 12px; font-size:15px; }
+ .page-home .bank-progress { margin-top:8px; font-size:11px; }
+ .page-home .bank-progress strong { font-size:16px; }
+ .page-home .bank-progress progress { margin-top:5px; }
+ .page-home .home-medal { min-height:44px; margin-top:8px; padding:6px 8px; }
+ .page-home .home-medal strong { font-size:12px; }
+ .page-home .home-medal small { font-size:10px; }
+ .page-home .home-medal .trophy-art { width:32px; height:32px; flex-basis:32px; }
+ .page-home .saved-overview { margin-bottom:8px; gap:8px; }
+ .page-home .saved-overview .board-preview { width:40px; flex-basis:40px; }
+ .page-home .saved-overview h2 { font-size:16px; margin:0; }
+ .page-home .saved-overview .eyebrow,.page-home .preview-caption { display:none; }
+ .page-home .home-links { justify-content:center; gap:8px; padding:0; }
+ .page-home .home-links button { min-height:36px; padding:6px 12px; font-size:11px; }
+}

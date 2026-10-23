@@ -1,10 +1,12 @@
 import {test,expect} from '@playwright/test';
 test('refreshed home fills the viewport and destinations remain usable',async({page})=>{
- for(const [width,height] of [[390,844],[390,1000],[1280,800]]){
+ for(const [width,height] of [[390,844],[390,1000],[568,320],[844,390],[1280,800]]){
   await page.setViewportSize({width,height});await page.goto('/');await page.getByRole('button',{name:'Новая игра'}).waitFor();await page.waitForTimeout(300);
   expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight)).toBe(true);
   await page.screenshot({path:`artifacts/refresh-home-${width}-${height}.png`});
  }
+ await page.getByRole('button',{name:'Новая игра'}).click();await page.getByRole('button',{name:'Лёгкий',exact:true}).click();await page.getByRole('button',{name:'На главную',exact:true}).click();
+ for(const [width,height] of [[568,320],[390,844]]){await page.setViewportSize({width,height});await page.waitForTimeout(300);expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight)).toBe(true);await page.screenshot({path:`artifacts/refresh-saved-${width}.png`});}
  await page.setViewportSize({width:390,height:844});await page.getByRole('button',{name:'Профиль',exact:true}).click();await expect(page.getByRole('textbox',{name:'Имя',exact:true})).toHaveCount(0);
  await page.getByRole('button',{name:'Изменить имя',exact:true}).click();await page.getByRole('textbox',{name:'Имя',exact:true}).fill('Данила');await page.getByRole('button',{name:'Сохранить имя',exact:true}).click();await expect(page.getByRole('heading',{name:'Данила',exact:true})).toBeVisible();
  await page.waitForTimeout(300);await page.screenshot({path:'artifacts/refresh-profile.png'});

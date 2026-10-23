@@ -78,7 +78,7 @@ export function Trophies({
           </select>
         </label>
         <span>
-          За {year}: {earned}/{yearMonths.length}
+          За {year}: {earned}/12
         </span>
       </div>
       <div key={year} className="trophy-grid">

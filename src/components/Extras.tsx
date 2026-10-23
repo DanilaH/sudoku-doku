@@ -37,8 +37,7 @@ export function Calendar({
     <section className="simple calendar-page">
       <h1>Задача дня</h1>
       <p>
-        Одно поле на дату. Обычная партия сохранится. Пропущенные дни можно
-        решить позже.
+        Выберите день. Обычная партия сохранится.
       </p>
       <button className="primary" disabled={!available} onClick={() => open(today)}>
         {!available ? "Задача на эту дату недоступна" : daily[today]?.completed
@@ -109,7 +108,7 @@ export function Calendar({
       <p className="footnote">
         ✓ решено · • начато
         <br />
-        Даты определяются по времени устройства. Прогресс хранится здесь. Новые ежедневные задачи имеют отдельный банк.
+        Пропущенные дни доступны в любое время.
       </p>
     </section>
   );

@@ -43,12 +43,13 @@ export function Trophies({
 }) {
   const [year, setYear] = useState(today.slice(0, 4));
   const months = archiveMonths(today, start);
-  const earned = months.filter((m) => monthProgress(daily, m).tier > 0).length;
+  const yearMonths = months.filter(m=>m.startsWith(year));
+  const earned = yearMonths.filter((m) => monthProgress(daily, m).tier > 0).length;
   return (
     <section className="simple trophy-page">
       <h1>Трофеи</h1>
       <p>
-        Каждый месяц — новая медаль. Решайте любые дни, в том числе пропущенные.
+        Медаль за каждый месяц. Пропущенные дни тоже можно решать.
       </p>
       <div className="trophy-rules">
         <span>
@@ -77,7 +78,7 @@ export function Trophies({
           </select>
         </label>
         <span>
-          Медалей: {earned}/{months.length}
+          За {year}: {earned}/{yearMonths.length}
         </span>
       </div>
       <div key={year} className="trophy-grid">

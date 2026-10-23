@@ -1,5 +1,5 @@
 name: RuStore optimized release
-run-name: RuStore 0.16 rewarded hints and ad layout
+run-name: RuStore 0.17 interface refresh and landscape banners
 on:
   push:
     branches: [feature/playtest-07]

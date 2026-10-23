@@ -6,7 +6,7 @@ test.beforeEach(async({page})=>{await page.route('**/src/platform/native.ts',rou
 async function start(page:import('@playwright/test').Page){await page.goto('/');await page.getByRole('button',{name:'Новая игра'}).click();await page.getByRole('button',{name:'Лёгкий',exact:true}).click();}
 test('three hints persist, video grants one pack, cancel and no fill grant nothing',async({page})=>{
  await start(page);
- for(let count=3;count>0;count--){await page.getByRole('button',{name:`Подсказка · ${count}`,exact:true}).click();await expect(page.getByRole('dialog')).toBeVisible();await page.keyboard.press('Escape');}
+ for(let count=3;count>0;count--){await page.getByRole('button',{name:`Подсказка · ${count}`,exact:true}).click();await expect(page.getByRole('dialog')).toBeVisible();await page.getByRole('button',{name:'Применить подсказку',exact:true}).click();}
  await page.reload();await page.locator('.continue').click();
  for(const mode of ['empty','close','success']){
   await page.evaluate(m=>{(window as any).rewardMode=m},mode);await page.getByRole('button',{name:'▶ +3 за видео',exact:true}).click();await page.screenshot({path:'artifacts/reward-offer.png'});await page.getByRole('button',{name:'▶ +3 подсказки за видео',exact:true}).click();await expect(page.getByRole('dialog')).toContainText(mode==='success'?'Добавлены 3':mode==='empty'?'недоступна':'не завершён');await page.getByRole('button',{name:'К игре',exact:true}).click();
@@ -16,8 +16,16 @@ test('three hints persist, video grants one pack, cancel and no fill grant nothi
 test('banner remains visible on small portrait and landscape screens',async({page})=>{
  await page.setViewportSize({width:390,height:640});await start(page);
  for(const [width,height,visible] of [[390,640,true],[390,1000,true],[844,390,true],[568,320,true],[320,568,true],[390,1000,true]] as const){await page.setViewportSize({width,height});await expect.poll(()=>page.evaluate(()=>(window as any).bannerCalls.at(-1)?.visible)).toBe(visible);
- await expect.poll(()=>page.evaluate(()=>{const ad=document.querySelector('.ad-slot')!.getBoundingClientRect();const game=document.querySelector('.game-layout')!.getBoundingClientRect();return game.bottom<=ad.top && ad.bottom<=innerHeight && ad.left>=0 && ad.right<=innerWidth})).toBe(true);
+ await page.screenshot({path:`artifacts/banner-${width}x${height}.png`});
+ await expect.poll(()=>page.evaluate(()=>{const ad=document.querySelector('.ad-slot')!.getBoundingClientRect();const board=document.querySelector('.board')!.getBoundingClientRect();const controls=document.querySelector('.secondary-tools')!.getBoundingClientRect();const separate=board.right<=ad.left || board.bottom<=ad.top;return separate && controls.bottom<=ad.top+1 && board.bottom<=innerHeight && ad.bottom<=innerHeight && ad.left>=0 && ad.right<=innerWidth})).toBe(true);
  await page.screenshot({path:`artifacts/banner-${width}x${height}.png`});
  }
  await expect(page.locator('.ad-slot')).toHaveCSS('height','96px');await page.getByRole('button',{name:'Настройки',exact:true}).click();await expect.poll(()=>page.evaluate(()=>(window as any).bannerCalls.at(-1)?.visible)).toBe(false);
+});
+
+test('same explanation stays free after closing and reload',async({page})=>{
+ await start(page);await page.getByRole('button',{name:'Подсказка · 3',exact:true}).click();await page.keyboard.press('Escape');
+ await page.getByRole('button',{name:'Открытая подсказка',exact:true}).click();await page.keyboard.press('Escape');
+ await page.reload();await page.locator('.continue').click();await page.getByRole('button',{name:'Открытая подсказка',exact:true}).click();
+ await page.getByRole('button',{name:'Применить подсказку',exact:true}).click();await expect(page.getByRole('button',{name:'Подсказка · 2',exact:true})).toBeVisible();
 });

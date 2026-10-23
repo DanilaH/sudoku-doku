@@ -1722,57 +1722,205 @@ progress::-webkit-progress-value {
   .tools button { min-height:44px; gap:2px; }
 }
 
-/* Reserve the native ad independently of the scrollable game in either orientation. */
-.game-page:has(.ad-slot) {
-  --banner-height: 80px;
-  padding-bottom: calc(var(--banner-height) + 16px + env(safe-area-inset-bottom));
-}
-.game-page .ad-slot {
-  position: fixed;
-  bottom: env(safe-area-inset-bottom, 0px);
-  left: max(14px, env(safe-area-inset-left));
-  right: max(14px, env(safe-area-inset-right));
-  width: auto;
-  max-width: 520px;
-  margin: 0 auto;
-  height: var(--banner-height, 80px);
-  background: var(--paper);
-  z-index: 5;
-}
-@media (max-width:720px) and (orientation:portrait) {
-  .game-page:has(.ad-slot) .board-wrap {
-    width: min(100%, max(216px, calc(100dvh - 330px - var(--banner-height))));
-  }
-}
-@media (orientation:landscape) and (max-height:600px) and (min-width:568px) {
-  .game-page:has(.ad-slot) .start-instruction { display:none; }
-  .game-page:has(.ad-slot) .game-layout {
-    grid-template-columns:minmax(180px,calc(100dvh - 120px - var(--banner-height))) minmax(260px,1fr);
-  }
-}
 
-.game-page:has(.ad-slot) .game-layout {
-  max-height: calc(100dvh - 160px - var(--banner-height) - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-  overflow: auto;
-  overscroll-behavior: contain;
+/* Shared visual language: calm blue actions, warm achievement accents. */
+:root { --accent:#315b87; --focus:#285c91; --shadow:0 6px 22px #1c355910; --radius:20px; }
+html[data-theme="dark"] { --accent:#416e9c; --focus:#b4d9ff; --shadow:0 6px 22px #0002; }
+@media(prefers-color-scheme:dark){html[data-theme="system"]{--accent:#416e9c;--focus:#b4d9ff;--shadow:0 6px 22px #0002}}
+h1,h2,.wordmark { letter-spacing:-.035em; }
+button { transition:background-color .15s,color .15s,box-shadow .15s; }
+.primary { border-radius:14px; font-weight:600; }
+.primary.secondary { background:var(--surface); border:1px solid var(--line); color:var(--ink); }
+.home-profile { color:var(--focus); }
+progress { appearance:none; height:6px; border:0; border-radius:99px; overflow:hidden; background:var(--wash); }
+progress::-webkit-progress-bar { background:var(--wash); border-radius:99px; }
+progress::-webkit-progress-value { background:var(--accent); border-radius:99px; }
+progress::-moz-progress-bar { background:var(--accent); border-radius:99px; }
+.home { max-width:1000px; min-height:calc(100dvh - 120px); display:flex; flex-direction:column; }
+.home-columns { flex:1; align-items:stretch; gap:24px; padding-block:20px; }
+.session-card,.daily-panel { border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); box-shadow:var(--shadow); padding:clamp(20px,3vw,36px); display:flex; flex-direction:column; justify-content:center; }
+.session-intro { margin-bottom:28px; }
+.session-intro .eyebrow,.daily-eyebrow { font-size:11px; letter-spacing:.12em; color:var(--muted); }
+.session-intro .new-session-title { font-size:clamp(34px,4vw,54px); margin:12px 0 8px; font-weight:700; }
+.session-intro p { color:var(--muted); margin:0; font-size:14px; }
+.bank-progress { margin-top:24px; font-size:13px; }
+.bank-progress strong { color:var(--ink); font-size:24px; font-variant-numeric:tabular-nums; }
+.bank-progress progress { height:6px; margin-top:10px; }
+.bank-levels { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:18px; }
+.bank-levels div { display:flex; flex-direction:column; gap:6px; font-size:11px; color:var(--muted); }
+.bank-levels strong { color:var(--ink); font-size:18px; }
+.bank-levels small { color:var(--muted); font-size:11px; font-weight:400; }
+.daily-eyebrow { margin-bottom:24px; }
+.daily-heading h2 { font-size:28px; }
+.daily-heading p { font-size:13px; margin-top:8px; }
+.daily-heading { margin-bottom:24px; }
+.daily-heading .calendar-link { min-height:44px; }
+.home-medal { margin-top:24px; padding:18px 12px; border-radius:16px; }
+.home-medal .trophy-art { width:64px; height:64px; flex-basis:64px; }
+.home-medal strong { font-size:16px; }
+.home-links { margin:0; padding:12px 0 4px; gap:12px; }
+.home-links button { padding:10px 20px; border-radius:12px; color:var(--ink); background:var(--surface); border:1px solid var(--line); }
+.saved-overview { margin-bottom:24px; }
+.saved-overview h2 { font-size:24px; }
+.saved-overview .board-preview { width:96px; flex-basis:96px; border-radius:8px; opacity:.65; }
+.modal { border:1px solid var(--line); border-radius:24px; box-shadow:0 20px 70px #10233b33; }
+.modal h2 { font-size:26px; }
+.difficulty-list button { background:var(--surface); border:1px solid var(--line); min-height:64px; border-radius:14px; }
+.difficulty-list button small { font-size:11px; padding:0 8px; }
+.simple { margin-top:26px; }
+.settings-group { padding:16px 20px; margin-top:18px; border:1px solid var(--line); border-radius:18px; background:var(--surface); }
+.settings-group h2 { margin:0 0 6px; font-size:18px; }
+.settings-group .setting:last-child { border-bottom:0; }
+.profile-identity { display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:20px; }
+.profile-identity h2 { margin:0 0 6px; font-size:28px; }
+.profile-identity span:not(.profile-avatar) { font-size:12px; color:var(--muted); }
+.profile-identity .text-button { font-size:12px; padding:8px 0; min-height:36px; }
+.profile-avatar { width:64px; height:64px; border-radius:20px; display:grid; place-items:center; font-size:30px; color:var(--focus); background:var(--same); }
+.profile-summary { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:24px 0; }
+.profile-summary div { padding:20px 14px; border-radius:18px; background:var(--surface); border:1px solid var(--line); }
+.profile-summary strong { display:block; font-size:30px; margin-bottom:10px; }
+.profile-summary small { font-size:14px; color:var(--muted); }
+.profile-summary span { font-size:12px; color:var(--muted); }
+.profile-stats-link { width:100%; padding:16px; background:var(--surface); border:1px solid var(--line); border-radius:14px; color:var(--focus); }
+.profile-status:empty { display:none; }
+.stats-empty { padding:24px; background:var(--surface); border:1px solid var(--line); border-radius:18px; margin-bottom:20px; }
+.stats-empty strong { font-size:20px; }
+.stats-empty p { color:var(--muted); font-size:14px; }
+.stats-metrics { background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:0 18px; }
+.stats-metrics > div:last-child { border-bottom:0; }
+.stats-metrics dd { font-size:20px; }
+.trophy-card { border-radius:18px; box-shadow:var(--shadow); }
+.trophy-card .trophy-art { width:76px; height:76px; }
+.trophy-art .trophy-cup { display:none; }
+.trophy-art text { font-size:22px; font-weight:700; transform:translateY(8px); }
+.home-medal progress::-webkit-progress-value,.month-reward progress::-webkit-progress-value { background:#bd8c2f; }
+.play-completed .result { border:1px solid var(--line); border-radius:24px; box-shadow:var(--shadow); }
+.play-completed .win-mark { display:grid; margin:0 auto 10px; width:48px; height:48px; border-radius:50%; background:#e9c76e; color:#443719; }
+.play-completed .result-caption { display:block; }
+.result-progress { text-align:center; margin:16px 0; padding:14px; border-radius:14px; background:var(--wash); }
+.result-progress > span { font-size:12px; color:var(--muted); }
+.result-progress strong { display:block; font-size:32px; margin:6px 0; }
+.result-progress small { font-size:14px; color:var(--muted); }
+.result-progress progress { width:100%; }
+@media(prefers-reduced-motion:no-preference){.result-progress{animation:arrive .25s ease-out}.win-mark{animation:medal-in .35s ease-out}}
+@media(max-width:720px){
+ .home { min-height:calc(100dvh - 88px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
+ .home-columns { grid-template-columns:1fr; padding-block:4px 12px; gap:14px; }
+ .session-card,.daily-panel { padding:22px; }
+ .session-intro { margin-bottom:18px; }
+ .session-intro .new-session-title { font-size:38px; margin:8px 0; }
+ .daily-eyebrow { margin-bottom:14px; }
+ .daily-heading { margin-bottom:16px; }
+ .daily-heading h2 { font-size:24px; }
+ .bank-progress { margin-top:16px; }
+ .bank-levels { margin-top:12px; }
+ .home-medal { margin-top:16px; padding:12px; }
+ .home-medal .trophy-art { width:52px; height:52px; flex-basis:52px; }
+ .home-links { gap:8px; justify-content:space-between; padding-top:0; }
+ .home-links button { padding:8px 12px; font-size:12px; }
+ .saved-overview { margin-bottom:16px; }
+ .saved-overview h2 { font-size:20px; }
+ .play-completed .board-wrap { max-width:220px; margin:0 auto; opacity:.65; }
+ .play-completed .result dl { margin:12px 0; }
 }
-@media (orientation:landscape) and (max-height:600px) and (min-width:568px) {
-  .game-page:has(.ad-slot) .game-layout {
-    max-height: calc(100dvh - 110px - var(--banner-height) - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-  }
+@media(max-width:720px) and (max-height:740px){
+ .session-card,.daily-panel { padding:14px 16px; }
+ .session-intro { margin-bottom:12px; }
+ .session-intro .new-session-title { font-size:30px; }
+ .session-intro p,.daily-eyebrow { display:none; }
+ .bank-levels { display:none; }
+ .bank-progress { margin-top:10px; }
+ .bank-progress strong { font-size:18px; }
+ .home-medal { min-height:54px; padding:8px; margin-top:10px; }
+ .home-medal .trophy-art { width:38px; height:38px; flex-basis:38px; }
+ .home-medal strong { font-size:13px; }
+ .daily-heading { margin-bottom:10px; }
+ .daily-heading h2 { font-size:21px; }
+ .saved-overview { margin-bottom:10px; }
+ .saved-overview h2 { font-size:18px; }
+ .home-columns { gap:10px; }
+ .home .primary { min-height:44px; padding:10px 14px; }
 }
-/* A transform animation would make the native slot fixed to the screen wrapper. */
-.screen-content:has(.ad-slot) { animation-name: veil-in; }
-@media (max-width:720px) and (orientation:portrait) {
-  .game-page:has(.ad-slot) .game-layout {
-    max-height: calc(100dvh - 120px - var(--banner-height) - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-    gap:6px;
-  }
-  .game-page:has(.ad-slot) .cell { font-size:clamp(18px,calc((100dvh - 330px - var(--banner-height)) / 12),32px); }
-  .game-page:has(.ad-slot) .tools { margin-bottom:6px; }
-  .game-page:has(.ad-slot) .tools button { min-height:44px; gap:2px; }
-  .game-page:has(.ad-slot) .numpad button { min-height:44px; }
+/* Advertising has its own layout space; the puzzle never scrolls inside a clipped box. */
+.game-page:has(.ad-slot) { --banner-height:80px; padding-bottom:calc(var(--banner-height) + 12px + env(safe-area-inset-bottom)); }
+.game-page .ad-slot { position:fixed; bottom:env(safe-area-inset-bottom,0px); left:max(14px,env(safe-area-inset-left)); right:max(14px,env(safe-area-inset-right)); width:auto; max-width:520px; margin:0 auto; height:var(--banner-height); background:var(--paper); z-index:5; }
+.screen-content:has(.ad-slot) { animation-name:veil-in; }
+.game-page:has(.ad-slot) .game-layout { overflow:visible; max-height:none; }
+@media(max-width:720px) and (orientation:portrait){
+ .game-page:has(.ad-slot) .top { height:40px; margin-bottom:2px; }
+ .game-page:has(.ad-slot) .game-heading { min-height:28px; margin-bottom:4px; }
+ .game-page:has(.ad-slot) .start-instruction { min-height:20px; font-size:10px; }
+ .game-page:has(.ad-slot) .game-layout { gap:6px; }
+ .game-page:has(.ad-slot) .board-wrap { width:min(100%,calc(100dvh - 282px - var(--banner-height) - env(safe-area-inset-top) - env(safe-area-inset-bottom))); margin:auto; }
+ .game-page:has(.ad-slot) .cell { font-size:clamp(18px,calc((100dvh - 282px - var(--banner-height)) / 12),32px); }
+ .game-page:has(.ad-slot) .tools { margin-bottom:6px; }
+ .game-page:has(.ad-slot) .tools button { min-height:40px; gap:2px; font-size:11px; }
+ .game-page:has(.ad-slot) .numpad { gap:4px; }
+ .game-page:has(.ad-slot) .numpad button { min-height:44px; font-size:26px; }
+ .game-page:has(.ad-slot) .secondary-tools { margin-top:4px; }
+ .game-page:has(.ad-slot) .secondary-tools button,.game-page:has(.ad-slot) .mode-picker summary { min-height:32px; font-size:11px; }
 }
-@media (orientation:landscape) and (max-height:600px) and (min-width:568px) {
-  .game-page:has(.ad-slot) .cell { font-size:clamp(16px,calc((100dvh - 120px - var(--banner-height)) / 12),24px); }
+@media(orientation:landscape) and (max-height:600px) and (min-width:568px){
+ .game-page:has(.ad-slot) { padding-top:4px; padding-bottom:env(safe-area-inset-bottom); }
+ .game-page:has(.ad-slot) .top { height:32px; margin-bottom:0; }
+ .game-page:has(.ad-slot) .play { display:grid; grid-template-columns:minmax(0,1fr) minmax(280px,1.2fr); grid-template-rows:24px auto var(--banner-height); column-gap:12px; row-gap:4px; }
+ .game-page:has(.ad-slot) .game-heading { grid-column:1 / -1; grid-row:1; min-height:24px; margin:0; }
+ .game-page:has(.ad-slot) .start-instruction { display:none; }
+ .game-page:has(.ad-slot) .game-layout { display:contents; }
+ .game-page:has(.ad-slot) .board-wrap { grid-column:1; grid-row:2 / 4; width:min(100%,calc(100dvh - 76px - env(safe-area-inset-bottom) - env(safe-area-inset-top))); align-self:start; justify-self:center; }
+ .game-page:has(.ad-slot) .game-controls { grid-column:2; grid-row:2; }
+ .game-page:has(.ad-slot) .ad-slot { position:static; grid-column:2; grid-row:3; width:100%; max-width:none; margin:0; height:var(--banner-height); }
+ .game-page:has(.ad-slot) .tools { gap:4px; margin-bottom:4px; }
+ .game-page:has(.ad-slot) .tools button { min-height:36px; font-size:10px; gap:0; }
+ .game-page:has(.ad-slot) .tools svg { width:16px; height:16px; }
+ .game-page:has(.ad-slot) .numpad { gap:4px; grid-template-columns:repeat(5,minmax(0,1fr)); }
+ .game-page:has(.ad-slot) .numpad button { min-height:40px; font-size:23px; padding-block:3px; }
+ .game-page:has(.ad-slot) .secondary-tools { margin-top:0; }
+ .game-page:has(.ad-slot) .secondary-tools button,.game-page:has(.ad-slot) .mode-picker summary { min-height:28px; font-size:10px; }
+ .game-page:has(.ad-slot) .cell { font-size:clamp(18px,calc((100dvh - 80px) / 12),32px); }
+ .game-page:has(.ad-slot) .note-state { top:0; font-size:8px; }
+}
+@media(prefers-reduced-motion:reduce){button{transition:none}.screen-content:has(.ad-slot){animation:none}}
+.page-home { height:100dvh; display:flex; flex-direction:column; }
+.page-home .top { flex-shrink:0; }
+.page-home .screen-viewport { flex:1; min-height:0; }
+.page-home .screen-content { height:100%; }
+.page-home .home { height:100%; min-height:0; }
+@media(max-width:720px) and (max-height:680px){
+ .page-home .session-card,.page-home .daily-panel { padding:10px 12px; }
+ .page-home .saved-overview { margin-bottom:8px; }
+ .page-home .saved-overview .board-preview { width:44px; flex-basis:44px; }
+ .page-home .saved-overview h2 { margin:0 0 3px; font-size:16px; }
+ .page-home .bank-progress { margin-top:8px; font-size:11px; }
+ .page-home .bank-progress progress { margin-top:6px; }
+ .page-home .daily-heading { margin-bottom:8px; }
+ .page-home .daily-heading h2 { font-size:19px; }
+ .page-home .daily-heading p { margin-top:4px; font-size:11px; }
+ .page-home .home-medal { min-height:44px; margin-top:8px; padding:6px 8px; }
+ .page-home .home-medal .trophy-art { width:32px; height:32px; flex-basis:32px; }
+ .page-home .home-medal small { font-size:10px; margin-top:3px; }
+ .page-home .archive-resume { min-height:28px; font-size:11px; }
+ .page-home .home-links button { padding:6px 8px; }
+ .page-home .home-columns { padding:0 0 8px; gap:8px; }
+}
+@media(max-width:720px) and (max-height:640px) and (orientation:portrait){
+ .game-page:has(.ad-slot) .start-instruction { display:none; }
+ .game-page:has(.ad-slot) .board-wrap { width:min(100%,calc(100dvh - 268px - var(--banner-height) - env(safe-area-inset-top) - env(safe-area-inset-bottom))); }
+ .game-page:has(.ad-slot) .tools button { min-height:44px; }
+ .game-page:has(.ad-slot) .tools svg { width:18px; height:18px; }
+}
+@media(max-width:720px) and (max-height:640px) and (orientation:portrait){
+ .game-page:has(.ad-slot) .game-layout { gap:4px; }
+ .game-page:has(.ad-slot) .tools { margin-bottom:4px; }
+ .game-page:has(.ad-slot) .tools button span { line-height:11px; }
+ .game-page:has(.ad-slot) .numpad button { padding-bottom:6px; }
+}
+@media(orientation:landscape) and (max-height:600px){
+ .play-completed .result .win-mark { width:32px; height:32px; margin-bottom:4px; }
+ .play-completed .result-caption { display:none; }
+ .play-completed .result-progress { order:2; margin:10px 0; padding:10px; }
+ .play-completed .result > .primary { order:1; margin-top:10px; }
+}
+@media(orientation:landscape) and (max-height:600px) and (min-width:568px){
+ .game-page:has(.ad-slot) .numpad small { left:auto; right:5px; bottom:3px; font-size:8px; }
 }

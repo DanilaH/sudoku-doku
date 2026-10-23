@@ -1,4 +1,4 @@
-import {hintCredits,spendHint,rewardHints} from './core/hint-credits';
+import {hintCredits,openHint,hintAlreadyOpened,rewardHints} from './core/hint-credits';
 import {version as appVersion} from '../package.json';
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { App as CapacitorApp } from "@capacitor/app";
@@ -585,10 +585,10 @@ export default function Doku() {
     if(transition.current||!running||!sref.current.current)return;
     const g=sref.current.current;
     const value=gameHint(g);
-    if(value.kind==='logical' && platform.adsAvailable && hintCredits(g)===0){void platform.ads.prepare();setModal({kind:'reward'});return}
+    if(value.kind==='logical' && platform.adsAvailable && hintCredits(g)===0 && !hintAlreadyOpened(g)){void platform.ads.prepare();setModal({kind:'reward'});return}
     transition.current=true;setAdBusy(true);
     try{
-      if(value.kind==='logical'&&platform.adsAvailable)await persist(withGame(sref.current,spendHint(g)));
+      if(value.kind==='logical'&&!hintAlreadyOpened(g))await persist(withGame(sref.current,openHint(g,platform.adsAvailable)));
       setModal({kind:'hint',value,index:0});
     }catch{setFailure('Не удалось сохранить подсказку. Повторите сохранение.')}
     finally{transition.current=false;setAdBusy(false)}
@@ -893,13 +893,14 @@ export default function Doku() {
                     <button className="primary continue" disabled={Boolean(failure)} onClick={() => resume(state.normal!)}>Продолжить партию <span>→</span></button>
                     <button className="primary secondary" disabled={Boolean(failure)} onClick={() => setModal({kind:"difficulty"})}>Новая игра</button>
                   </> : <>
-                    <h2 className="new-session-title">Обычные задачи</h2>
+                    <div className="session-intro"><span className="eyebrow">ОБЫЧНЫЕ ЗАДАЧИ</span><h2 className="new-session-title">1800 задач</h2><p>Три уровня сложности</p></div>
                     <button className="primary" disabled={Boolean(failure)} onClick={() => setModal({kind:"difficulty"})}>Новая игра <span>→</span></button>
 
                   </>}
-                  <div className="bank-progress"><span>Решено {progress.solved} из {progress.total}</span><progress value={progress.solved} max={progress.total} aria-label="Прогресс обычных задач" /></div>
+                  <div className="bank-progress"><span><strong>{progress.solved}</strong> из {progress.total} решено</span><progress value={progress.solved} max={progress.total} aria-label="Прогресс обычных задач" /></div>
+                  <div className="bank-levels">{levels.map(level=>{const p=bankProgress(puzzles,state.results,level);return <div key={level}><span>{labels[level]}</span><strong>{p.solved}<small>/{p.total}</small></strong></div>})}</div>
                 </section>
-                <section className="daily-panel">
+                <section className="daily-panel"><span className="eyebrow daily-eyebrow">КАЖДЫЙ ДЕНЬ — НОВОЕ ПОЛЕ</span>
                   <div className="daily-heading"><div><h2>Задача дня</h2><p>{new Date(today+"T12:00:00").toLocaleDateString("ru",{day:"numeric",month:"long"})}{dailyAvailable ? ` · ${labels[(state.daily[today] ?? dailyPuzzle(today)).difficulty]}` : ""}</p></div><button className="calendar-link" onClick={() => {setPage("daily");}}><Glyph name="calendar" />Календарь</button></div>
                   <button className="primary secondary" disabled={!dailyAvailable} onClick={() => daily(today)}>{!dailyAvailable ? "Нужен новый банк задач" : state.daily[today]?.completed ? "Решено ✓" : state.daily[today] ? "Продолжить задачу дня" : "Играть сегодня"}</button>
                   {archivedGame && <button className="archive-resume" disabled={Boolean(failure)} onClick={() => resume(archivedGame)}>Продолжить {archivedGame.dailyDate!.split('-').reverse().join('.')} →</button>}
@@ -1060,6 +1061,7 @@ export default function Doku() {
                             </button>
                           );
                         })()}
+                      {!game.dailyDate && <div className="result-progress"><span>{game.replay ? 'Повтор завершён' : 'Ещё одна задача в коллекции'}</span><strong>{progress.solved}<small> / {progress.total}</small></strong><progress value={progress.solved} max={progress.total} /></div>}
                       <dl>
                         <div>
                           <dt>Активное время</dt>
@@ -1131,10 +1133,11 @@ export default function Doku() {
                         </button>
                         <button
                           disabled={!running}
+                          title={platform.adsAvailable ? "Новое объяснение — 1 подсказка. Повторное открытие бесплатно." : "Объяснить следующий ход"}
                           onClick={() => void requestHint()}
                         >
                           <Glyph name="hint" />
-                          <span>{platform.adsAvailable ? hintCredits(game)>0 ? `Подсказка · ${hintCredits(game)}` : '▶ +3 за видео' : 'Подсказка'}</span>
+                          <span>{platform.adsAvailable ? hintAlreadyOpened(game) ? 'Открытая подсказка' : hintCredits(game)>0 ? `Подсказка · ${hintCredits(game)}` : '▶ +3 за видео' : 'Подсказка'}</span>
                         </button>
                       </div>
                       <p className="input-caption">
@@ -1379,8 +1382,8 @@ export default function Doku() {
           )}
           {page === "profile" && <Profile key={`${accountId}:${state.profile?.updatedAt}`} state={state} accountId={accountId} available={platform.accounts.available} busy={profileBusy} message={syncMessage}
             rename={name=>{void persist({...sref.current,revision:sref.current.revision+1,profile:{name,updatedAt:Date.now()}})}}
-            connect={()=>void profileAction('connect')} sync={()=>void profileAction('sync')} disconnect={()=>void profileAction('disconnect')} trophies={showTrophies} />}
-          {page === "stats" && <Statistics state={state} />}
+            connect={()=>void profileAction('connect')} sync={()=>void profileAction('sync')} disconnect={()=>void profileAction('disconnect')} trophies={showTrophies} statistics={()=>setPage("stats")} />}
+          {page === "stats" && <Statistics state={state} start={()=>setModal({kind:"difficulty"})} />}
           {page === "daily" && (
             <Calendar
               daily={state.daily}
@@ -1424,10 +1427,10 @@ export default function Doku() {
       {modal && (
         <ModalView key={modal.kind} close={() => setModal(null)}>
           <>
-            {modal.kind === "message" ? (<><h2>{modal.text}</h2><button className="primary" onClick={()=>setModal(null)}>К игре</button></>) : modal.kind === "reward" ? (<><h2>Ещё 3 подсказки</h2><p>Посмотрите рекламу, чтобы получить 3 подсказки для этой партии. Награда выдаётся после подтверждения просмотра.</p><button className="primary" onClick={()=>void requestReward()}>▶ +3 подсказки за видео</button><button className="text-button" onClick={()=>setModal(null)}>Продолжить без подсказки</button></>) : modal.kind === "difficulty" ? (
+            {modal.kind === "message" ? (<><h2>{modal.text}</h2><button className="primary" onClick={()=>setModal(null)}>К игре</button></>) : modal.kind === "reward" ? (<><h2>Ещё 3 подсказки</h2><p>Посмотрите рекламу, чтобы получить 3 подсказки для этой партии. Досмотрите видео — подсказки останутся в этой партии.</p><button className="primary" onClick={()=>void requestReward()}>▶ +3 подсказки за видео</button><button className="text-button" onClick={()=>setModal(null)}>Продолжить без подсказки</button></>) : modal.kind === "difficulty" ? (
               <>
                 <h2>Выберите сложность</h2>
-                <div className="difficulty-list">{levels.map(level => <button key={level} aria-label={labels[level]} onClick={() => requestNew(level)}><span>{labels[level]}</span><small>{bankProgress(puzzles,state.results,level).solved}/{bankProgress(puzzles,state.results,level).total}</small><span>→</span></button>)}</div>
+                <div className="difficulty-list">{levels.map(level => <button key={level} aria-label={labels[level]} onClick={() => requestNew(level)}><span>{labels[level]}</span><small>Решено {bankProgress(puzzles,state.results,level).solved}/{bankProgress(puzzles,state.results,level).total}</small><span>→</span></button>)}</div>
               </>
             ) : modal.kind === "new" ? (
               <>
@@ -1657,7 +1660,7 @@ function HintView({
         ))}
       </div>
       <p className="hint-legend">
-        Обводка — основание шага. Перечёркнутые цифры — исключения.
+        Обводка показывает основание шага.{s.removals.length>0?' Перечёркнутые цифры — исключения.':''} Повторное открытие этого объяснения бесплатно.
       </p>
       {index < value.steps.length - 1 ? (
         <button className="primary" onClick={onNext}>

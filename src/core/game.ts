@@ -45,6 +45,7 @@ export interface Game {
   redo: Move[];
   activeMs: number;
   hintCredits?: number;
+  openedHintPositions?: string[];
   lastHintReward?: string;
   hints: number;
   completed: boolean;
@@ -249,7 +250,7 @@ export function applyHint(g: Game, steps: Step[], autoNotes = false): Game {
       if (autoNotes) for (const p of peers[c]) n[p] &= ~bit(d);
     }
   }
-  return { ...commit(g, e, n, "hint"), hints: g.hints + 1 };
+  return { ...commit(g, e, n, "hint"), hints: g.hints + (g.openedHintPositions?.includes(g.entries.join("")) ? 0 : 1) };
 }
 /** Current game and result live in one snapshot, persisted by a single atomic write. */
 export function withGame(state: State, g: Game, now = Date.now()): State {
@@ -444,6 +445,7 @@ export function validateState(value: unknown): State {
       !Number.isInteger(g.hints) ||
       g.hints < 0 ||
       (g.hintCredits !== undefined && (!Number.isInteger(g.hintCredits) || g.hintCredits < 0 || g.hintCredits > 3)) ||
+      (g.openedHintPositions !== undefined && (!Array.isArray(g.openedHintPositions) || g.openedHintPositions.length > 512 || g.openedHintPositions.some((key: unknown) => typeof key !== "string" || !/^[0-9]{81}$/.test(key)))) ||
       (g.lastHintReward !== undefined && (typeof g.lastHintReward !== "string" || g.lastHintReward.length > 128)) ||
       !Array.isArray(g.undo) ||
       !Array.isArray(g.redo)

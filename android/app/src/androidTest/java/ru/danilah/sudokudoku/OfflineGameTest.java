@@ -55,6 +55,11 @@ public class OfflineGameTest {
    evaluate(s,"document.querySelector('.new-game .primary').click()");waitFor(s,"!!document.querySelector('.difficulty-list button')");
    evaluate(s,"document.querySelector('.difficulty-list button').click()");waitFor(s,"!!document.querySelector('.ad-slot')");
    Thread.sleep(35000);screenshot("online-demo-banner.png");
+   s.onActivity(a->a.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE));
+   waitFor(s,"innerWidth>innerHeight");
+   waitFor(s,"(()=>{const a=document.querySelector('.ad-slot').getBoundingClientRect(),b=document.querySelector('.board').getBoundingClientRect();return a.width>=280&&a.bottom<=innerHeight&&b.bottom<=innerHeight&&(b.right<=a.left||b.bottom<=a.top)})()");
+   Thread.sleep(12000);screenshot("online-demo-landscape.png");
+   s.onActivity(a->a.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT));
   }
  }
  @Test public void nativeBannerMatchesReservedSlot()throws Exception{

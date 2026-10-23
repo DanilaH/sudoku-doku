@@ -7,3 +7,10 @@ export function rewardHints(s:State,gameId:string,receipt:string):State {
  const next=withGame(s,{...g,hintCredits:3,lastHintReward:receipt});
  return s.current?.id===gameId?next:{...next,current:s.current};
 }
+
+export const hintAlreadyOpened=(g:Game)=>Boolean(g.openedHintPositions?.includes(g.entries.join('')));
+export function openHint(g:Game,metered=true):Game {
+ if(hintAlreadyOpened(g))return g;
+ const next=metered?spendHint(g):g;
+ return {...next,hints:g.hints+1,openedHintPositions:[...(g.openedHintPositions??[]).slice(-511),g.entries.join('')]};
+}

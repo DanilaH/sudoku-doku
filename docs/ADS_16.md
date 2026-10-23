@@ -26,3 +26,5 @@ The preceding native run 39469886252 passed offline/save, process restoration, B
 Final run 39471632747 succeeded. Production build/lint/startup passed without crash; all five instrumentation probes completed. Online SDK log confirms banner request, load and impression, plus rewarded/interstitial loads. The captured banner is below controls and above system navigation. Full rewarded playback and production fill still require a physical-device check. Release artifact: 12288400333. Project run 39471632838 also passed web and Android jobs.
 
 2026-10-23: Removed the 740px visibility threshold and the matching CSS hide rule. Browser regression covers 390×640, 390×1000, 844×390, 568×320 and 320×568, checks visibility plus non-overlap, and verifies hiding in settings. The ad-bearing screen uses a fade to avoid transformed ancestors changing the fixed slot coordinate system.
+
+Update 2026-10-23: The production signing archive was successfully recovered and its certificate verified. The signing blocker above is resolved; see UI_REFRESH_17.md for the signed 0.17 artifact and current hint/cache behavior.

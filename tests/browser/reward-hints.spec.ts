@@ -13,8 +13,11 @@ test('three hints persist, video grants one pack, cancel and no fill grant nothi
  }
  await expect(page.getByRole('button',{name:'Подсказка · 3',exact:true})).toBeVisible();await page.reload();await page.locator('.continue').click();await expect(page.getByRole('button',{name:'Подсказка · 3',exact:true})).toBeVisible();
 });
-test('banner eligibility recalculates when height crosses threshold',async({page})=>{
+test('banner remains visible on small portrait and landscape screens',async({page})=>{
  await page.setViewportSize({width:390,height:640});await start(page);
- for(const [width,height,visible] of [[390,640,false],[390,1000,true],[844,390,false],[390,1000,true]] as const){await page.setViewportSize({width,height});await expect.poll(()=>page.evaluate(()=>(window as any).bannerCalls.at(-1)?.visible)).toBe(visible)}
+ for(const [width,height,visible] of [[390,640,true],[390,1000,true],[844,390,true],[568,320,true],[320,568,true],[390,1000,true]] as const){await page.setViewportSize({width,height});await expect.poll(()=>page.evaluate(()=>(window as any).bannerCalls.at(-1)?.visible)).toBe(visible);
+ await expect.poll(()=>page.evaluate(()=>{const ad=document.querySelector('.ad-slot')!.getBoundingClientRect();const game=document.querySelector('.game-layout')!.getBoundingClientRect();return game.bottom<=ad.top && ad.bottom<=innerHeight && ad.left>=0 && ad.right<=innerWidth})).toBe(true);
+ await page.screenshot({path:`artifacts/banner-${width}x${height}.png`});
+ }
  await expect(page.locator('.ad-slot')).toHaveCSS('height','96px');await page.getByRole('button',{name:'Настройки',exact:true}).click();await expect.poll(()=>page.evaluate(()=>(window as any).bannerCalls.at(-1)?.visible)).toBe(false);
 });

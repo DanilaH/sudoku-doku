@@ -523,7 +523,7 @@ export default function Doku() {
   }, [running, page, modal]);
   useEffect(() => {
     const update = () => {
-      const validSlot = running && window.innerHeight >= 740;
+      const validSlot = running;
       const r = banner.current?.getBoundingClientRect();
       const visible =
         validSlot &&
@@ -541,9 +541,12 @@ export default function Doku() {
         }).then(result=>{
           if(!visible || !banner.current || !result || typeof result!=='object' || !('height' in result))return;
           const height=Number(result.height);
-          if(Number.isFinite(height)&&height>=50&&height<=window.innerHeight*.2){
-            const requested=Math.max(80,Math.ceil(height));
-            if(banner.current.style.height!==`${requested}px`)banner.current.style.height=`${requested}px`;
+          if(Number.isFinite(height)&&height>=50&&height<=Math.max(120,window.innerHeight*.35)){
+            const requested=Math.max(50,Math.ceil(height));
+            if(banner.current.style.height!==`${requested}px`){
+              banner.current.style.height=`${requested}px`;
+              (banner.current.closest(".game-page") as HTMLElement | null)?.style.setProperty("--banner-height",`${requested}px`);
+            }
           }
         }).catch(() => {});
 
